@@ -1,0 +1,44 @@
+{
+    "db_tables" : [
+        {
+            "name" : "users",
+            "columns": 
+            {
+                "id" : "serial PRIMARY KEY",
+                "username" : " varchar(64) NOT NULL",
+                "password_hash": "text NOT NULL",
+                "is_admin" : "bool"
+            }
+        },
+        {
+            "name" : "recipes",
+            "columns": 
+            {
+                "id" : "serial PRIMARY KEY",
+                "name" : "varchar(64) NOT NULL",
+                "description" : "varchar(256)",
+                "tags" : "varchar(256)"
+            }
+        },
+        {
+            "name" : "ingredients",
+            "columns": 
+            {
+                "id" : "serial PRIMARY KEY",
+                "name" : "varchar(64) NOT NULL",
+                "unit" : "varchar(64) NOT NULL",
+                "cost_per_unit": "double precision NOT NULL"
+            }
+        },
+        {
+            "name" : "recipe_ingredient_pairs",
+            "columns": 
+            {
+                "id" : "serial PRIMARY KEY",
+                "recipe_id" : "bigint NOT NULL",
+                "ingredient_id" : "bigint NOT NULL",
+                "amount_of_units" : "double precision NOT NULL"
+            }
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "table_name": "users",
+    "entries": 
+    [
+        {
+            "username": "admin",
+            "password_hash": "$2b$12$LjP.k4PX2Y6RKc4EBoPrf.ncakO1zNJoajSiXL.5UxvB56iwBhAU.",
+            "is_admin": "True"
+        },
+        {
+            "username": "notadmin",
+            "password_hash": "$2b$12$lexGoDYOSVMrHOeiLnPc2.WCwL.0yJARYYtqGVjWxeVs8I7jtiXmq",
+            "is_admin": "False"
+        }
+    ]
+}
