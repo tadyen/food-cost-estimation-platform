@@ -1,0 +1,32 @@
+{
+    "table_name": "recipe_ingredient_pairs",
+    "entries": 
+    [
+        {
+            "recipe_id" : 1,
+            "ingredient_id" : 1,
+            "amount_of_units" : 150
+
+        },
+        {
+            "recipe_id" : 1,
+            "ingredient_id" : 2,
+            "amount_of_units" : 160
+        },
+        {
+            "recipe_id" : 1,
+            "ingredient_id" : 3,
+            "amount_of_units" : 2
+        },
+        {
+            "recipe_id" : 1,
+            "ingredient_id" : 5,
+            "amount_of_units" : 250
+        },        
+        {
+            "recipe_id" : 1,
+            "ingredient_id" : 6,
+            "amount_of_units" : 125
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+html{
+    color:#f0f0f0;
+    /* background:#0a0a0a; */
+    background:#222324;
+    font-family:Arial;
+}
+body{
+    margin:0;
+    padding:0;
+    background-repeat:no-repeat;
+    background-attachment:fixed;
+    /* background:#0a0a0a; */
+    background:#222324;
+}
+h1{
+    text-align:center
+}
+footer{
+    position: absolute;
+    bottom: 1vh;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}

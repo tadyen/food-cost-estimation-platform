@@ -1,0 +1,36 @@
+{
+    "table_name": "ingredients",
+    "entries": 
+    [
+        {
+            "name": "eg. Sugar",
+            "unit": "g",
+            "cost_per_unit": 0.00227666666
+        },
+        {
+            "name": "eg. Milk",
+            "unit": "mL",
+            "cost_per_unit": 0.0015
+        },
+        {
+            "name": "eg. Egg (unit)",
+            "unit": "unit",
+            "cost_per_unit": 0.6
+        },
+        {
+            "name": "eg. Egg (g)",
+            "unit": "g",
+            "cost_per_unit": 0.0097
+        },
+        {
+            "name": "eg. Flour ",
+            "unit": "g",
+            "cost_per_unit": 0.014
+        },
+        {
+            "name": "eg. Butter",
+            "unit": "g",
+            "cost_per_unit": 0.0128
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "table_name": "recipes",
+    "entries": 
+    [
+        {
+            "name": "eg. Cake",
+            "description": "An example recipe of cake, serves 8",
+            "tags": "food, cake, dessert, sweet"
+        },
+        {
+            "name": "eg. Omelette",
+            "description": "An example recipe for omellete, serves 1",
+            "tags": "food, savoury, breakfast"
+        }
+    ]
+}
