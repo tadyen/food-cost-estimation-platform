@@ -42,19 +42,19 @@
                 </a>
             {% endif %}
             <div class="right menu">
-                {% if username != "None" %}
+                {% if ((username == "None") or (username is none )) %}
+                <div class="item">
+                    <a href="/signin">
+                        <div class="ui primary button">Log-in</div>
+                    </a>
+                </div>
+                {% else %}
                 <div class="item">
                     {{ username }}
                 </div>
                 <div class="item">
                     <a href="/logout">
                         <div class="ui primary button">Sign Out</div>
-                    </a>
-                </div>
-                {% else %}
-                <div class="item">
-                    <a href="/signin">
-                        <div class="ui primary button">Log-in</div>
                     </a>
                 </div>
                 {% endif %}

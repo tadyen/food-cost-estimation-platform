@@ -86,7 +86,7 @@ def page_logout():
 
 @app.route("/bad_page")
 def html_bad_page():
-    return render_template("bad.html")
+    return render_template("bad.html", username=None)
 
 if __name__ == "__main__":
     app.run(debug=True)
