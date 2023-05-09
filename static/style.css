@@ -1,16 +1,17 @@
 html{
     color:#f0f0f0;
-    /* background:#0a0a0a; */
     background:#222324;
+    /* background:#0a0a0a; */
     font-family:Arial;
 }
 body{
+    color:#f0f0f0;
+    /* background:#0a0a0a; */
+    background:#222324;
     margin:0;
     padding:0;
     background-repeat:no-repeat;
     background-attachment:fixed;
-    /* background:#0a0a0a; */
-    background:#222324;
 }
 h1{
     text-align:center

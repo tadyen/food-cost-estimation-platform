@@ -27,6 +27,22 @@
             "recipe_id" : 1,
             "ingredient_id" : 6,
             "amount_of_units" : 125
+        },
+        {
+            "recipe_id" : 2,
+            "ingredient_id" : 2,
+            "amount_of_units" : 50
+        },
+        {
+            "recipe_id" : 2,
+            "ingredient_id" : 3,
+            "amount_of_units" : 3
+        },
+        {
+            "recipe_id" : 2,
+            "ingredient_id" : 6,
+            "amount_of_units" : 20
         }
+        
     ]
 }
