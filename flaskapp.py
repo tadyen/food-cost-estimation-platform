@@ -34,7 +34,6 @@ def html_home():
     username = session["username"] if "username" in session else "None"
     is_admin = session["is_admin"] if "is_admin" in session else False
     is_admin = "True" if is_admin else "False"
-    print(is_admin)
     # return render_template("home.html", username=username, is_admin=is_admin)
     query = f"SELECT * FROM recipes;"
     recipes = psql.psql_psycopg2_query(query)

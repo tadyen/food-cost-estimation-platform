@@ -22,3 +22,6 @@ footer{
     left: 50%;
     transform: translate(-50%, -50%);
 }
+#is_admin_alert{
+    transition: opacity 0.25s ease;
+}
