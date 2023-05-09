@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block styles %}
+<style>
+    form{
+        margin: 0 auto;
+        top: 20vh;
+        width: 50vw;
+    }
+</style>
+{% endblock %}
+{% block main_content %}
+<body onload="invalid_user()">
+    <form class="ui form inverted" method="POST">
+        <div class="ui message red invalid_user">
+            <div class="header">Invalid username or password entered</div>
+        </div>
+        <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="Username eg. notadmin" required>
+        </div>
+        <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Password eg. admin1234" required>
+        </div>
+        <button class="ui button deny" type="submit" >Log-in</button>
+    </form>
+</body>
+{% endblock %}
+{% block scripts %}
+<script>
+    function invalid_user(){
+        if( "{{ invalid_user }}" == "False"){
+            $('.invalid_user').css("visibility", "hidden")
+        }
+        else{
+            $('.invalid_user').css("visibility", "show")
+        }
+        return
+    }
+</script>
+{% endblock %}
