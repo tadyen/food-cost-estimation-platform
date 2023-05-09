@@ -3,7 +3,7 @@
 {% set ns = namespace(recipe_description="", recipe_tags="", total_sum=0.00, ) %}
 <form method="GET">
     <select class="ui search dropdown inverted" name="recipe_id" onchange="this.form.submit()">
-        <option value="0">Select Recipe:</option>
+        <option value="None">Select Recipe:</option>
         {% for tup in recipes %}
           {% if sel_recipe_id|int == tup[0] %}
             <option value="{{ tup[0] }}" selected="selected">{{ tup[1] }}</option>
@@ -16,12 +16,12 @@
     </select>
 </form>
 
-{% if (sel_recipe_id != "None") and (sel_recipe_id != "0") %}
+{% if (sel_recipe_id != "None") %}
   <p id="recipe_description">{{ ns.recipe_description }}</p>
   <p>{{ 'Tags: %s' % ns.recipe_tags }} </p>
 {% endif %}
 
-{% if (ingredients != "None") and (sel_recipe_id != "0") %}
+{% if (ingredients != "None") and (sel_recipe_id != "None") %}
   <table class="ui celled table inverted long unstackable collapsing">
     <thead>
       <tr>
@@ -79,13 +79,13 @@
     </tfoot>
   </table>
 {% endif %}
+
 {% endblock %}
 {% block scripts %}
 <script>
 $('.ui.dropdown')
   .dropdown()
 ;
-
 function set_total(){
   recipe_amt = parseFloat( $('#recipe_amt_input').val() );
   recipe_cost = parseFloat( $('#p_hidden_sum').text() );
