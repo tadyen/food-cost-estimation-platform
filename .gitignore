@@ -3,6 +3,8 @@
 
 # test
 .asdf
+templates-asdf/
+asdf-flaskapp.py
 
 # python stuff
 __pycache__/
@@ -11,6 +13,7 @@ model/__pychache__/
 
 #sensitive info
 .pgpass
+.pgpass_remote
 
 # ignore because this is a shared repo
 .vscode

@@ -11,7 +11,13 @@
         <meta name="description" content="Food-cost-estimator">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="icon" type="image/x-icon" href="./static/imgs/64_favicon.png">
-        <link rel="stylesheet" href="./static/style.css">
+        <!-- You MUST include jQuery 3+ before Fomantic -->
+        <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
+        <!-- Fomantic UI -->
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.2/dist/semantic.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.2/dist/semantic.min.js"></script>
+        <!-- custom -->
+        <link rel="stylesheet" type="text/css" href="static/style.css">
     </head>
     <body>
         <div class="user_session">
@@ -20,12 +26,16 @@
             <h1>Food Cost Estimator</h1>
         </header>
         <main>
+        {% block main_content %}
+        {% endblock %}
         </main>
         <footer>
-            Made by <a href="https://github.com/tadyen">tadyen</a>. <a href="https://github.com/tadyen/food-cost-estimation-platform">Source code</a>
+            by <a href="https://github.com/tadyen">tadyen</a>. <a href="https://github.com/tadyen/food-cost-estimation-platform">Source code</a>
         </footer>
         <!--[if lt IE 7]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
+        {% block scripts %}
+        {% endblock %}
     </body>
 </html>

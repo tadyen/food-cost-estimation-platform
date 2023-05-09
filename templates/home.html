@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block main_content %}
+{% set ns = namespace(recipe_description="", recipe_tags="", total_sum=0.00, ) %}
+<form method="GET">
+    <select class="ui search dropdown inverted" name="recipe_id" onchange="this.form.submit()">
+        <option value="0">Select Recipe:</option>
+        {% for tup in recipes %}
+          {% if sel_recipe_id|int == tup[0] %}
+            <option value="{{ tup[0] }}" selected="selected">{{ tup[1] }}</option>
+            {% set ns.recipe_description = tup[2] %}
+            {% set ns.recipe_tags = tup[3] %}
+          {% else %}
+            <option value="{{ tup[0] }}">{{ tup[1] }}</option>
+          {% endif %}
+        {% endfor %}
+    </select>
+</form>
+
+{% if (sel_recipe_id != "None") and (sel_recipe_id != "0") %}
+  <p id="recipe_description">{{ ns.recipe_description }}</p>
+  <p>{{ 'Tags: %s' % ns.recipe_tags }} </p>
+{% endif %}
+
+{% if (ingredients != "None") and (sel_recipe_id != "0") %}
+  <table class="ui celled table inverted long unstackable collapsing">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Ingredient</th>
+        <th>Amount</th>
+        <th>Unit</th>
+        <th>Cost/unit</th>
+        <th>Cost of ingredient</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tup in ingredients %}
+        <tr>
+          <th>Edit</th>
+          <td>{{ tup[0] }}</td>
+          <td>{{ tup[2] }}</td>
+          <td>{{ tup[1] }}</td>
+          <td>{{ '$ %.6f' % tup[3] | float }}</td>
+          {% set sum = (tup[2] * tup[3]) %}
+          {% set ns.total_sum = (ns.total_sum + sum) %}
+          <td>{{ '$ %.2f' % sum | float }}</td>
+        </tr>
+      {% endfor %}
+      <tr>
+        <th>Add +</th>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+        <td></td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th></th>
+        <th>Subtotal:</th>
+        <th>{{'$ %.2f' % ns.total_sum | float}} ea</th>
+      </tr>
+      <tr>
+        <th>Recipe amount:</th>
+        <th>
+          <div class="ui input focus">
+            <input id="recipe_amt_input" type="number" placeholder="1" min="1" onchange="set_total()">
+          </div>
+        </th>
+        <th><p hidden id="p_hidden_sum">{{ns.total_sum}}<p></th>
+        <th></th>
+        <th>Total:</th>
+        <th id="th_total_cost">{{ '$ %0.2f' % ns.total_sum | float }}</th>
+      </tr>
+    </tfoot>
+  </table>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+$('.ui.dropdown')
+  .dropdown()
+;
+
+function set_total(){
+  recipe_amt = parseFloat( $('#recipe_amt_input').val() );
+  recipe_cost = parseFloat( $('#p_hidden_sum').text() );
+  total_cost = recipe_amt * recipe_cost;
+  $("#th_total_cost").text( '$ ' + String(total_cost.toFixed(2)) );
+}
+</script>
+{% endblock %}
