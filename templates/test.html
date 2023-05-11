@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block main_content%}
+<button class="ui button inverted buttonTest" >Test</button>
+{% endblock %}
+{% block scripts %}
+<script>
+$.fn.api.settings.api = {
+    'get recipe list' : '/api/get_recipe_table?recipe_id={id}',
+    'get recipe ingredients' : '/api/get_recipe_ingredients?recipe_id={id}',
+    'test action' : '/api/get_recipe_table',
+};
+var recipe_inglist = []
+$('.buttonTest')
+  .api({
+    action: 'test action',
+    onResponse: function(response) {
+      // make some adjustments to response
+      console.log("asdf onResponse")
+      return response;
+    },
+    successTest: function(response) {
+      // test whether a JSON response is valid
+      console.log("asdf successTest")
+      return response.success || false;
+    },
+    onComplete: function(response, element, xhr) {
+        console.log("asdf onComplete")
+        console.log(response)
+      // always called after XHR complete
+    },
+    onSuccess: function(response, element, xhr) {
+      // valid response and response.success = true
+      console.log("asdf onSuccess")
+    },
+    onFailure: function(response, element, xhr) {
+      // request failed, or valid response but response.success = false
+      console.log("asdf onFailure")
+    },
+    onError: function(errorMessage, element, xhr) {
+      // invalid response
+      console.log("asdf onError")
+    },
+    onAbort: function(errorMessage, element, xhr) {
+        console.log("asdf onAbort")
+      // navigated to a new page, CORS issue, or user canceled request
+    }
+  })
+;
+
+</script>
+{% endblock %}

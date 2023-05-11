@@ -27,18 +27,30 @@
                 Home
             </a>
             {% if is_admin == "True" %}
+                <a class="item" href="/create_recipe" >
+                    Create Recipe
+                </a>
                 <a class="item" href="/edit_recipes" >
                     Edit Recipes
                 </a>
+                <a class="item" href="/create_ingredient">
+                    Create Ingredient
+                </a>
                 <a class="item" href="/edit_ingredients">
-                    Edit ingredients
+                    Edit Ingredients
                 </a>
             {% else %}
+                <a class="item" href="#" onclick="alert_invalid_admin()">
+                    Create Recipe
+                </a>
                 <a class="item" href="#" onclick="alert_invalid_admin()">
                     Edit Recipes
                 </a>
                 <a class="item" href="#" onclick="alert_invalid_admin()">
-                    Edit ingredients
+                    Create Ingredient
+                </a>
+                <a class="item" href="#" onclick="alert_invalid_admin()">
+                    Edit Ingredients
                 </a>
             {% endif %}
             <div class="right menu">

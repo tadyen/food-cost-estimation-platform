@@ -8,6 +8,12 @@
     #a_this_table_number{
         border: solid 1px white;
     }
+    .hide{
+        display: none !important;
+    }
+    .or::before {
+        opacity: 15%;
+    }
 </style>
 {% endblock %}
 {% block main_content%}
@@ -18,22 +24,34 @@
         <th>Name</th>
         <th>Description</th>
         <th>Tags</th>
-        <th>edit/save/create</th>
+        <th>vw/edt/sv/crt</th>
         <th>delete</th>
     </tr></thead>
     <tbody>
         {% for tup in recipes %}
             {% set id = tup[0] | int %}
             <tr>
-                <th>{{tup[0]}}</th>
+                <th>{{id}}</th>
                 <th>{{tup[1]}}</th>
                 <th>{{tup[2]}}</th>
                 <th>{{tup[3]}}</th>
                 <th>
-                    <button class="ui button inverted" id="b_edit_{{id}}">Edit</button>
+                    <button class="ui button inverted basic teal buttonView" id="b_view_{{id}}" data-id={{id}}>View</button>
+                    <button class="ui button inverted basic olive buttonEdit" id="b_edit_{{id}}" data-id={{id}}>Edit</button>
+                    <div class="ui buttons duoButtonUpdate">
+                        <button class="ui button grey buttonCancelUpdate" id="b_cancelUpdate_{{id}}" data-id={{id}}>Cancel</button>
+                        <div class="or" data-text=""></div>
+                        <button class="ui button inverted green buttonUpdate" id="b_update_{{id}}" data-id={{id}}>Update</button>
+                    </div>
                 </th>
                 <th>
-                    <button class="ui button inverted" id="b_del_{{id}}">Delete</button>
+                    <button class="ui button inverted red buttonPreDelete" id="b_preDel_{{id}}" data-id={{id}}>Delete</button>
+                    <div class="ui buttons duoButtonDelete">
+                        <button class="ui button grey buttonCancelDelete" id="b_cancelDel_{{id}}" data-id={{id}}>Cancel</button>
+                        <div class="or" data-text=""></div>
+                        <button class="ui button inverted red buttonConfirmDelete" id="b_confirmDel_{{id}}" data-id={{id}}>Confirm</button>
+                    </div>
+                    <button class="ui button secondary disabled buttonDeleted" id="b_deleted_{{id}}">Deleted</button>
                 </th>
             </tr>
         {% endfor %}
@@ -78,5 +96,61 @@
 {% endblock %}
 {% block scripts %}
 <script>
+$.fn.api.settings.api = {
+    'get recipe list' : '/api/get_recipe_ingredients?recipe_id={id}',
+};
+var recipe_inglist = []
+$('.buttonView')
+  .api({
+    action: 'get recipe list',
+    onResponse: function(response) {
+      // make some adjustments to response
+      console.log("asdf onResponse")
+      return response;
+    },
+    successTest: function(response) {
+      // test whether a JSON response is valid
+      console.log("asdf successTest")
+      return response.success || false;
+    },
+    onComplete: function(response, element, xhr) {
+        console.log("asdf onComplete")
+        recipe_ingredient_list = response.message
+        console.log(recipe_ingredient_list.length)
+      // always called after XHR complete
+    },
+    onSuccess: function(response, element, xhr) {
+      // valid response and response.success = true
+      console.log("asdf onSuccess")
+    },
+    onFailure: function(response, element, xhr) {
+      // request failed, or valid response but response.success = false
+      console.log("asdf onFailure")
+    },
+    onError: function(errorMessage, element, xhr) {
+      // invalid response
+      console.log("asdf onError")
+    },
+    onAbort: function(errorMessage, element, xhr) {
+        console.log("asdf onAbort")
+      // navigated to a new page, CORS issue, or user canceled request
+    }
+  })
+;
+$().ready(function(){
+    $('.buttonView').toggleClass('hide',false)
+    $('.buttonEdit').toggleClass('hide',true)
+    $('.duoButtonUpdate').toggleClass('hide',true)
+    $('.buttonPreDelete').toggleClass('hide',false)
+    $('.duoButtonDelete').toggleClass('hide',true)
+    $('.buttonDeleted').toggleClass('hide',true)
+});
+$('.buttonConfirmDelete').on("click", function(e){
+    e.target.classList.add('hide')
+});
+function b_edit_click(id){
+    console.log(id)
+    console.log(recipe_ingredient_list.length())
+}
 </script>
 {% endblock %}
