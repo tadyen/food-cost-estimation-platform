@@ -56,7 +56,7 @@ class Psql_interface():
     def psql_psycopg2_query(self, sql_query: str, field_values: list = None):
         if not self.check_db_exists():
             raise Exception("DB has not been created yet. Cannot populate DB that does not exist.")
-        connection = psycopg2.connect(dbname=self.db_name, user=self.pguser, password=self._password)
+        connection = psycopg2.connect(dbname=self.db_name, user=self.pguser, password=self._password, host=self.pghost, port=self.pgport)
         cursor = connection.cursor()
         if field_values != None:
             cursor.execute(sql_query, field_values)
