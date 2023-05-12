@@ -11,7 +11,9 @@
     ending_entry_num=recipe_table["ending_entry_num"],
     total_num_of_pages=recipe_table["total_num_of_pages"],
     total_num_of_results=recipe_table["total_num_of_results"],
-    results_in_page=recipe_table["results_in_page"] ) %}
+    results_in_page=recipe_table["results_in_page"] 
+    ) 
+%}
 
 {% block styles %}
 <style>
@@ -33,108 +35,194 @@
 
 {% block main_content%}
 <div class="wrapper">
-<table class="ui celled very compact small striped table inverted">
-    <thead><tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Description</th>
-        <th>Tags</th>
-        <th>vw/edt/sv/crt</th>
-        <th>delete</th>
-    </tr></thead>
-    <tbody>
-        {% for li in ns.results_in_page %}
-            {% set id = li[0] | int %}
-            <tr>
-                <th>{{id}}</th>
-                <th>{{li[1]}}</th>
-                <th>{{li[2]}}</th>
-                <th>{{li[3]}}</th>
-                <th>
-                    <button class="ui button inverted basic teal buttonView" id="b_view_{{id}}" data-id={{id}}>View</button>
-                    <button class="ui button inverted basic olive buttonEdit" id="b_edit_{{id}}" data-id={{id}}>Edit</button>
-                    <div class="ui buttons duoButtonUpdate">
-                        <button class="ui button grey buttonCancelUpdate" id="b_cancelUpdate_{{id}}" data-id={{id}}>Cancel</button>
-                        <div class="or" data-text=""></div>
-                        <button class="ui button inverted green buttonUpdate" id="b_update_{{id}}" data-id={{id}}>Update</button>
-                    </div>
-                </th>
-                <th>
-                    <button class="ui button inverted red buttonPreDelete" id="b_preDel_{{id}}" data-id={{id}}>Delete</button>
-                    <div class="ui buttons duoButtonDelete">
-                        <button class="ui button grey buttonCancelDelete" id="b_cancelDel_{{id}}" data-id={{id}}>Cancel</button>
-                        <div class="or" data-text=""></div>
-                        <button class="ui button inverted red buttonConfirmDelete" id="b_confirmDel_{{id}}" data-id={{id}}>Confirm</button>
-                    </div>
-                    <button class="ui button secondary disabled buttonDeleted" id="b_deleted_{{id}}">Deleted</button>
-                </th>
-            </tr>
-        {% endfor %}
-    </tbody>
-    <tfoot>
-      <tr>
-        <th colspan="4">
-        <div class="ui right floated pagination menu inverted">
-            {% if ns.page_number != 1  %}
-                <a class="icon item tablePage" data-pagenum="{{1}}">
-                    <i class="angle double left icon" ></i>
-                </a>
-                <a class="icon item tablePage" data-pagenum="{{ns.page_number-1}}">
-                    <i class="angle left icon"></i>
-                </a>
-            {% endif %}
-            {% set start_page_num = ns.total_num_of_pages - 4 %}
-            {% set end_page_num = ns.page_number + 4 %}
-            {% if end_page_num > ns.total_num_of_pages %}
-                {% set end_page_num = ns.total_num_of_pages %}
-            {% endif %}
-            {% if start_page_num < 1 %}
-                {% set start_page_num = 1 %}
-            {% endif %}
-            {% if start_page_num > ns.page_number %}
-                {% set start_page_num = ns.page_number %}
-            {% endif %}
-            {% for x in range(start_page_num, end_page_num+1) %}
-                {% if x == ns.page_number %}
-                    <a class="item tablePage" id="a_this_table_number" data-pagenum="{{x}}">{{x}}</a>
-                {% else %}
-                    <a class="item tablePage" data-pagenum="{{x}}">{{x}}</a>
-                {% endif %}
-            {% endfor %}
-            {% if not (ns.page_number >= ns.total_num_of_pages) %}
-                <a class="icon item tablePage" data-pagenum="{{ns.page_number+1}}">
-                    <i class="angle right icon"></i>
-                </a>
-                <a class="icon item tablePage" data-pagenum="{{ ns.total_num_of_pages }}">
-                    <i class="angle double right icon"></i>
-                </a>
-            {% endif %}
+<div class="ui inverted segment">
+    <div class="ui form inverted">
+        <div class="inline fields">
+            <div class="fourteen wide field">
+                <input type="text" id="input_search" placeholder="Search for a recipe eg. Cake">
+            </div>
+            <div class="two wide field">
+                <div class="ui submit button buttonSearchSubmit">
+                    <i class="search icon"></i>
+                    Search
+                </div>
+            </div>
         </div>
-      </th>
-      <th colspan="2">Page {{ns.page_number}} of {{ns.total_num_of_pages}}, Entries {{ns.starting_entry_index+1}}-{{ns.ending_entry_num}} shown of {{ns.total_num_of_results}}</th>
-    </tr></tfoot>
-</table>
+    </div>
+</div>
+{% if ns.total_num_of_results == 0 %}
+    <div class="ui icon message">
+        <i class="box open icon"></i>
+        <div class="content">
+        <div class="header">
+            No results found.
+        </div>
+        <p>Try a different search?</p>
+        </div>
+    </div>
+{% else %}
+    <table class="ui celled very compact small striped table inverted">
+        <thead><tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Tags</th>
+            <th>vw/edt/sv/crt</th>
+            <th>delete</th>
+        </tr></thead>
+        <tbody>
+            {% for li in ns.results_in_page %}
+                {% set id = li[0] | int %}
+                <tr>
+                    <th>{{id}}</th>
+                    <th id="th_name_{{id}}">{{li[1]}}</th>
+                    <th>{{li[2]}}</th>
+                    <th>{{li[3]}}</th>
+                    <th>
+                        <button class="ui button inverted basic teal buttonView" id="b_view_{{id}}" data-id={{id}}>View</button>
+                        <button class="ui button inverted olive buttonEdit hide" id="b_edit_{{id}}" data-id={{id}}>Edit</button>
+                        <div class="ui buttons duoButtonUpdate hide" id="b_duo_update_{{id}}">
+                            <button class="ui button grey buttonCancelUpdate" id="b_cancelUpdate_{{id}}" data-id={{id}}>Cancel</button>
+                            <div class="or" data-text=""></div>
+                            <button class="ui button inverted green buttonUpdate" id="b_update_{{id}}" data-id={{id}}>Update</button>
+                        </div>
+                    </th>
+                    <th>
+                        <button class="ui button inverted red buttonPreDelete" id="b_preDel_{{id}}" data-id={{id}}>Delete</button>
+                        <div class="ui buttons duoButtonDelete hide" id="b_duo_delete_{{id}}">
+                            <button class="ui button grey buttonCancelDelete" id="b_cancelDel_{{id}}" data-id={{id}}>Cancel</button>
+                            <div class="or" data-text=""></div>
+                            <button class="ui button inverted red buttonConfirmDelete" id="b_confirmDel_{{id}}" data-id={{id}}>Confirm</button>
+                        </div>
+                        <button class="ui button secondary disabled buttonDeleted hide" id="b_deleted_{{id}}">Deleted</button>
+                    </th>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+        <tr>
+            <th colspan="4">
+            <div class="ui right floated pagination menu inverted">
+                {% if ns.page_number != 1  %}
+                    <a class="icon item tablePage" data-pagenum="{{1}}">
+                        <i class="angle double left icon" ></i>
+                    </a>
+                    <a class="icon item tablePage" data-pagenum="{{ns.page_number-1}}">
+                        <i class="angle left icon"></i>
+                    </a>
+                {% endif %}
+                {% set start_page_num = ns.total_num_of_pages - 4 %}
+                {% set end_page_num = ns.page_number + 4 %}
+                {% if end_page_num > ns.total_num_of_pages %}
+                    {% set end_page_num = ns.total_num_of_pages %}
+                {% endif %}
+                {% if start_page_num < 1 %}
+                    {% set start_page_num = 1 %}
+                {% endif %}
+                {% if start_page_num > ns.page_number %}
+                    {% set start_page_num = ns.page_number %}
+                {% endif %}
+                {% for x in range(start_page_num, end_page_num+1) %}
+                    {% if x == ns.page_number %}
+                        <a class="item tablePage" id="a_this_table_number" data-pagenum="{{x}}">{{x}}</a>
+                    {% else %}
+                        <a class="item tablePage" data-pagenum="{{x}}">{{x}}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if not (ns.page_number >= ns.total_num_of_pages) %}
+                    <a class="icon item tablePage" data-pagenum="{{ns.page_number+1}}">
+                        <i class="angle right icon"></i>
+                    </a>
+                    <a class="icon item tablePage" data-pagenum="{{ ns.total_num_of_pages }}">
+                        <i class="angle double right icon"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </th>
+        <th colspan="2">Page {{ns.page_number}} of {{ns.total_num_of_pages}}, Entries {{ns.starting_entry_index+1}}-{{ns.ending_entry_num}} shown of {{ns.total_num_of_results}}</th>
+        </tr></tfoot>
+    </table>
+
+    <table class="ui celled table inverted long unstackable">
+        <thead>
+            <tr>
+                <th colspan="5" id="i_table_recipe_name"></th>
+            </tr>
+            <tr>
+                <th>Ingredient</th>
+                <th>Amount</th>
+                <th>Unit</th>
+                <th>Cost/unit</th>
+                <th>Cost of ingredient</th>
+            </tr>
+        </thead>
+        <tbody id="i_table_tbody">
+        </tbody>
+        <tfoot>
+        </tfoot>
+    </table>
+{% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-$(".tablePage").on( "click",
-    function(e){
-        let next_pagenum = $(this).data()['pagenum'];
-        if(next_pagenum == {{ns.page_number}}){
-            return;
-        }
-        let entries_per_page = {{ns.entries_per_page}};
-        let search_string = "{{ ns.search_string }}";
-        let sort_by = "{{ns.sort_by}}"
-        let order = "{{ns.order}}"
-        link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${next_pagenum}&search_string=${search_string}&sort_by=${sort_by}&order=${order}`;
-        $(this).attr("href", link);
+var page_number = {{ns.page_number}};
+var entries_per_page = {{ns.entries_per_page}};
+var search_string = "{{ ns.search_string }}";
+var sort_by = "{{ns.sort_by}}";
+var order = "{{ns.order}}";
+
+var recipe_inglist = [];
+var previous_id_clicked = 0
+
+$.fn.api.settings.api = {
+    'get recipe list' : '/api/get_recipe_ingredients?recipe_id={id}',
+};
+
+function submit_search(new_search_string){
+    link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}`;
+    window.location.replace(link);
+}
+
+function view_button_actions(jq, values){
+    id = jq.data()['id']
+    recipe_name = $(`#th_name_${id}`).text()
+    reset_views_button_group(previous_id_clicked)
+    previous_id_clicked = id
+    $(`#b_view_${id}`).toggleClass('hide',true)
+    $(`#b_edit_${id}`).toggleClass('hide',false)
+    generate_ingredients_table(recipe_name,values)
+}
+
+function generate_ingredients_table(recipe_name, values){
+    // [ "eg. Sugar",
+    //   "g",
+    //   150.0,
+    //   0.00227666666 ]
+    $("#i_table_recipe_name").text(recipe_name)
+    $("#i_table_tbody").empty()
+    for(let i of values){
+        let i_cost = parseFloat(i[2]) * parseFloat(i[3])
+        let new_tr = $(`
+        <tr>
+            <td>${i[0]}</td>
+            <td>${i[2]}</td>
+            <td>${i[1]}</td>
+            <td>$ ${i[3].toFixed(6)}</td>
+            <td>$ ${i_cost.toFixed(2)}</td>
+        </tr>
+        `)
+        $("#i_table_tbody").append(new_tr)
     }
-);
+}
 
-
+function reset_views_button_group(id){
+    console.log("asdf")
+    $(`#b_view_${id}`).toggleClass('hide',false)
+    $(`#b_edit_${id}`).toggleClass('hide',true)
+    $(`#b_duo_update_${id}`).toggleClass('hide',true)
+}
 
 $().ready(function(){
     $('.buttonView').toggleClass('hide',false)
@@ -144,5 +232,37 @@ $().ready(function(){
     $('.duoButtonDelete').toggleClass('hide',true)
     $('.buttonDeleted').toggleClass('hide',true)
 });
+
+$(".tablePage").on( "click",
+    function(e){
+        let next_pagenum = $(this).data()['pagenum'];
+        if(next_pagenum == {{ns.page_number}}){
+            return;
+        }
+        link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${next_pagenum}&search_string=${search_string}&sort_by=${sort_by}&order=${order}`;
+        $(this).attr("href", link);
+    }
+);
+
+$('#input_search').on('keydown', function(e){
+    if( $(this).is(":focus") ){
+        if(e.originalEvent.key == 'Enter'){
+            submit_search($(this).val())
+        }
+    }
+});
+
+$('.buttonSearchSubmit').on("click", function(e){
+    submit_search($('#input_search').val())
+});
+
+$('.buttonView')
+    .api({
+        action: 'get recipe list',
+        onSuccess: function(response, element, xhr) {
+            view_button_actions($(this), response.message)
+        }
+    })
+;
 </script>
 {% endblock %}

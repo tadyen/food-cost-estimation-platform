@@ -343,9 +343,23 @@ def html_edit_recipes():
     if(RecipeTable.set_params(entries_per_page, page_number, search_string, sort_by, order)):
         recipe_table = RecipeTable.results()
     if recipe_table is None:
-        return redirect("/bad_page")
+        # return a result so the page knows that search provided no results
+        recipe_table = {
+            # params for GET query
+            "table_name": "recipes",
+            "entries_per_page": entries_per_page,
+            "page_number": page_number,
+            "search_string": search_string,
+            "sort_by": sort_by,
+            "order": order,
+            # params of GET query
+            "total_num_of_results": 0,
+            "total_num_of_pages": 0,
+            "starting_entry_index": 0,
+            "ending_entry_num": 0,
+            "results_in_page": 0,
+        }
     return render_template("edit_recipes.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
-    
     
 @app.route("/edit_recipes_old", methods=["GET","POST"])
 def html_edit_recipes_old():
@@ -419,7 +433,7 @@ def api_get_recipe_ingredients():
         recipe_id = request.args.get("recipe_id")
         recipe_id = recipe_id if recipe_id is not None else ""
     try:
-        int(recipe_id)
+        recipe_id = int(recipe_id)
         assert( recipe_id >= 0 )
         assert( recipe_id <= total_num_of_recipes)
         query = f"""SELECT name, unit, amount_of_units, cost_per_unit FROM 
