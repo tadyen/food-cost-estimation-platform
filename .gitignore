@@ -14,6 +14,10 @@ model/__pychache__/
 #sensitive info
 .pgpass
 .pgpass_remote
+.env
+.env_local
+.env_remote_int
+.env_remote_ext
 
 # ignore because this is a shared repo
 .vscode

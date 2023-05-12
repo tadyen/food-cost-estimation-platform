@@ -8,10 +8,23 @@ import math
 import os
 import sys
 
-PGUSER = "postgres"
-PGPASS_FILE = "./model/.pgpass"
-DB_HOST = "localhost"
-DB_NAME = "food_cost_estimator"
+ENV_FILE = ".env"
+
+HERE_ABSPATH = os.path.dirname( os.path.realpath( sys.argv[0] ) )
+
+if os.path.isfile(ENV_FILE):
+    PGUSER=os.getenv('PGUSER')
+    PGPASS=os.getenv('PGPASS')
+    DB_HOST=os.getenv('DB_HOST')
+    DB_NAME=os.getenv('DB_NAME')
+    DB_PORT=os.getenv('DB_PORT')
+else:
+    PGUSER = "postgres"
+    PGPASS_FILE = "./model/.pgpass"
+    PGPASS = open(os.path.join(HERE_ABSPATH, PGPASS_FILE)).read().strip()
+    DB_HOST = "localhost"
+    DB_NAME = "food_cost_estimator"
+    DB_PORT = 5432
 
 SRC_PATH = "./src"
 IMG_PATH = "static/imgs/"
@@ -23,6 +36,7 @@ TABLE_PAIRS = "recipe_ingredient_pairs"
 
 HTML_TABLE_DISPLAY_LIMIT = 10
 
+src_path = os.path.abspath( os.path.join( HERE_ABSPATH, SRC_PATH ) )
 class IngredientUnits(Enum):
     UNIT_G = "g"
     UNIT_ML = "ml"
@@ -31,12 +45,8 @@ class IngredientUnits(Enum):
 # ===================================================================================
 #  Flaskapp and psql Setup
 # ===================================================================================
-
-here_abspath = os.path.dirname( os.path.realpath( sys.argv[0] ) )
-src_path = os.path.abspath( os.path.join( here_abspath, SRC_PATH ) )
-pgpass = open(os.path.join(here_abspath, PGPASS_FILE)).read().strip()
     
-psql = Psql_interface(PGUSER, pgpass, DB_NAME, src_path, pghost=DB_HOST)
+psql = Psql_interface(PGUSER, PGPASS, DB_NAME, src_path, pghost=DB_HOST, pgport=DB_PORT)
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "Some secret key lmao"
 
