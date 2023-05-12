@@ -26,6 +26,12 @@ else:
     DB_NAME = "food_cost_estimator"
     DB_PORT = 5432
 
+print(PGUSER)
+print(PGPASS)
+print(DB_HOST)
+print(DB_NAME)
+print(DB_PORT)
+
 SRC_PATH = "./src"
 IMG_PATH = "static/imgs/"
 
@@ -434,7 +440,7 @@ def api_get_recipe_ingredients():
         recipe_id = int(recipe_id)
         assert( recipe_id >= 0 )
         assert( recipe_id <= total_num_of_recipes)
-        query = f"""SELECT name, unit, amount_of_units, cost_per_unit FROM 
+        query = f"""SELECT i.id, i.name, i.unit, p.amount_of_units, i.cost_per_unit FROM 
         (recipe_ingredient_pairs as p INNER JOIN ingredients as i ON p.ingredient_id = i.id)
         WHERE p.recipe_id = {recipe_id}
         ;

@@ -30,6 +30,13 @@
     .or::before {
         opacity: 15%;
     }
+    .invis{
+        visibility: hidden !important;
+    }
+    .th_invis{
+        color: #FFFFFF00 !important;
+        border-style: none none solid none !important;
+    }
 </style>
 {% endblock %}
 
@@ -79,10 +86,10 @@
             {% for li in ns.results_in_page %}
                 {% set id = li[0] | int %}
                 <tr>
-                    <th>{{id}}</th>
+                    <th id="th_id_{{id}}">{{id}}</th>
                     <th id="th_name_{{id}}">{{li[1]}}</th>
-                    <th>{{li[2]}}</th>
-                    <th>{{li[3]}}</th>
+                    <th id="th_desc_{{id}}">{{li[2]}}</th>
+                    <th id="th_tags_{{id}}">{{li[3]}}</th>
                     <th>
                         <button class="ui button inverted basic teal buttonView" id="b_view_{{id}}" data-id={{id}}>View</button>
                         <button class="ui button inverted olive buttonEdit hide" id="b_edit_{{id}}" data-id={{id}}>Edit</button>
@@ -151,14 +158,17 @@
     <table class="ui celled table inverted long unstackable">
         <thead>
             <tr>
-                <th colspan="5" id="i_table_recipe_name"></th>
+                <th colspan="6" id="i_table_recipe_name"></th>
+                <th colspan="1" class="th_invis" id="this is here only for spacing">asdf</th>
             </tr>
             <tr>
+                <th>ID</th>
                 <th>Ingredient</th>
                 <th>Amount</th>
                 <th>Unit</th>
                 <th>Cost/unit</th>
                 <th>Cost of ingredient</th>
+                <th><button class="ui button inverted red small invis">Remove</button></th>
             </tr>
         </thead>
         <tbody id="i_table_tbody">
@@ -185,11 +195,14 @@ $.fn.api.settings.api = {
     'get recipe list' : '/api/get_recipe_ingredients?recipe_id={id}',
 };
 
-function submit_search(new_search_string){
-    link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}`;
-    window.location.replace(link);
-}
-
+$('.buttonView')
+    .api({
+        action: 'get recipe list',
+        onSuccess: function(response, element, xhr) {
+            view_button_actions($(this), response.message)
+        }
+    })
+;
 function view_button_actions(jq, values){
     id = jq.data()['id']
     recipe_name = $(`#th_name_${id}`).text()
@@ -200,6 +213,47 @@ function view_button_actions(jq, values){
     generate_ingredients_table(recipe_name,values)
 }
 
+$('.buttonEdit').on("click",function(e){
+    edit_button_actions($(this))
+});
+function edit_button_actions(jq){
+    id = jq.data()['id']
+    $(`#b_edit_${id}`).toggleClass('hide',true)
+    $(`#b_duo_update_${id}`).toggleClass('hide',false)
+    convert_to_input($(`#th_name_${id}`))
+    convert_to_input($(`#th_desc_${id}`))
+    convert_to_input($(`#th_tags_${id}`))
+    $('.buttonIngRemove').toggleClass('hide',false)
+    $('.tdIngAmt')
+        .one("load", function(e){
+            convert_to_input($(this))
+        })
+        .trigger("load")
+
+};
+
+function convert_to_input(jq){
+    textContent = jq.text()
+    elem_id = jq[0].id
+    new_elem_id = `conv_${elem_id}`
+    jq.empty()
+    new_input_stuff = $(`
+    <div class="ui small fluid inverted input" id="${new_elem_id}">
+        <input type="text" value="${textContent}">
+    </div>
+    `)
+    jq.append(new_input_stuff)
+}
+
+function deconvert_input(jq){
+    input_elem = jq.find('input')[0]
+    elem_id = jq[0].id
+    orig_elem_id = elem_id.slice(5)
+    textContent = input_elem.value
+    $(`#${orig_elem_id}`).empty()
+    $(`#${orig_elem_id}`).text(textContent)
+}
+
 function generate_ingredients_table(recipe_name, values){
     // [ "eg. Sugar",
     //   "g",
@@ -208,14 +262,17 @@ function generate_ingredients_table(recipe_name, values){
     $("#i_table_recipe_name").text(recipe_name)
     $("#i_table_tbody").empty()
     for(let i of values){
-        let i_cost = parseFloat(i[2]) * parseFloat(i[3])
+        let i_cost = parseFloat(i[3]) * parseFloat(i[4])
+        let ing_id = i[0]
         let new_tr = $(`
         <tr>
             <td>${i[0]}</td>
-            <td>${i[2]}</td>
             <td>${i[1]}</td>
-            <td>$ ${i[3].toFixed(6)}</td>
+            <td class="tdIngAmt" id="td_ing_amt_${ing_id}">${i[3]}</td>
+            <td>${i[2]}</td>
+            <td>$ ${i[4].toFixed(6)}</td>
             <td>$ ${i_cost.toFixed(2)}</td>
+            <td><button class="ui button small inverted red buttonIngRemove hide" id="b_ingRem_{{id}}" data-id={{id}}>Remove</button></td>
         </tr>
         `)
         $("#i_table_tbody").append(new_tr)
@@ -223,7 +280,6 @@ function generate_ingredients_table(recipe_name, values){
 }
 
 function reset_views_button_group(id){
-    console.log("asdf")
     $(`#b_view_${id}`).toggleClass('hide',false)
     $(`#b_edit_${id}`).toggleClass('hide',true)
     $(`#b_duo_update_${id}`).toggleClass('hide',true)
@@ -256,18 +312,12 @@ $('#input_search').on('keydown', function(e){
         }
     }
 });
-
 $('.buttonSearchSubmit').on("click", function(e){
     submit_search($('#input_search').val())
 });
-
-$('.buttonView')
-    .api({
-        action: 'get recipe list',
-        onSuccess: function(response, element, xhr) {
-            view_button_actions($(this), response.message)
-        }
-    })
-;
+function submit_search(new_search_string){
+    link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}`;
+    window.location.replace(link);
+}
 </script>
 {% endblock %}
