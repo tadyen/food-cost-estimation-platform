@@ -187,10 +187,11 @@
     <table class="ui celled table inverted long unstackable">
         <thead>
             <tr>
-                <th colspan="4" id="i_table_recipe_name"></th>
+                <th colspan="5" id="i_table_recipe_name"></th>
                 <th colspan="1" class="th_invis" id="this is here only for spacing">asdf</th>
             </tr>
             <tr>
+                <th>ID</th>
                 <th>Ingredient</th>
                 <th>Amount</th>
                 <th>Unit</th>
@@ -254,17 +255,18 @@ function generate_ingredients_table(recipe_name, values){
     $("#recipe_total_price_output").val("")
     
     if(values.length == 0){
-        $("#i_table_tbody").append($("<tr><td colspan='5'>No ingredients found for this recipe</td></tr>"))
+        $("#i_table_tbody").append($("<tr><td colspan='6'>No ingredients found for this recipe</td></tr>"))
         return
     }
     for(let i of values){
-        let i_cost = parseFloat(i[2]) * parseFloat(i[3])
+        let i_cost = parseFloat(i[3]) * parseFloat(i[4])
         let new_tr = $(`
             <tr>
                 <td>${i[0]}</td>
-                <td>${i[2]}</td>
                 <td>${i[1]}</td>
-                <td>$ ${i[3].toFixed(6)}</td>
+                <td>${i[3]}</td>
+                <td>${i[2]}</td>
+                <td>$ ${i[4].toFixed(6)}</td>
                 <td>$ ${i_cost.toFixed(2)}</td>
             </tr>
         `)
@@ -274,7 +276,7 @@ function generate_ingredients_table(recipe_name, values){
     // Calculations
     new_tr = $(`
         <tr>
-            <th colspan="3"></th>
+            <th colspan="4"></th>
             <th>Subtotal:</th>
             <th id="th_total_cost" data-value="${total_cost}">$ ${total_cost.toFixed(2)}</th>
         </tr>
