@@ -27,22 +27,40 @@
                 Home
             </a>
             {% if is_admin == "True" %}
+                <a class="item" href="/craft_recipe" >
+                    Craft Recipe
+                </a>
                 <a class="item" href="/edit_recipes" >
                     Edit Recipes
                 </a>
+                <a class="item" href="/craft_ingredient">
+                    Craft Ingredient
+                </a>
                 <a class="item" href="/edit_ingredients">
-                    Edit ingredients
+                    Edit Ingredients
                 </a>
             {% else %}
+                <a class="item" href="#" onclick="alert_invalid_admin()">
+                    Craft Recipe
+                </a>
                 <a class="item" href="#" onclick="alert_invalid_admin()">
                     Edit Recipes
                 </a>
                 <a class="item" href="#" onclick="alert_invalid_admin()">
-                    Edit ingredients
+                    Craft Ingredient
+                </a>
+                <a class="item" href="#" onclick="alert_invalid_admin()">
+                    Edit Ingredients
                 </a>
             {% endif %}
             <div class="right menu">
-                {% if username != "None" %}
+                {% if ((username == "None") or (username is none )) %}
+                <div class="item">
+                    <a href="/signin">
+                        <div class="ui primary button">Log-in</div>
+                    </a>
+                </div>
+                {% else %}
                 <div class="item">
                     {{ username }}
                 </div>
@@ -51,20 +69,16 @@
                         <div class="ui primary button">Sign Out</div>
                     </a>
                 </div>
-                {% else %}
-                <div class="item">
-                    <a href="/signin">
-                        <div class="ui primary button">Log-in</div>
-                    </a>
-                </div>
                 {% endif %}
             </div>
         </div>
-        <div class="ui message red" id="is_admin_alert">
+        <div class="ui message red alertMsg" id="is_admin_alert">
             <div class="header">You must be logged in as an admin to edit.</div>
         </div>
         <header>
+            {% block header_content %}
             <h1>Food Cost Estimator</h1>
+            {% endblock %}
         </header>
         <main>
         {% block main_content %}
@@ -77,24 +91,34 @@
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
         <script>
-            function hide_alert(){
-                $('#is_admin_alert').css("visibility", "hidden");
-                console.log($('#is_admin_alert'));
-                return
-            }
+            var locked=false
             function alert_invalid_admin(){
-                console.log("{{ is_admin }}")
-                if( "{{ is_admin }}" == "True"){
-                    $('#is_admin_alert').css("visibility", "hidden");
-                    console.log("hide");
-                }
-                else{
-                    $('#is_admin_alert').css("visibility", "show");
-                    console.log("show");
+                if(locked === false){
+                    locked = true;
+                    if( "{{ is_admin }}" == "True"){
+                        $('#is_admin_alert').css("visibility", "hidden");
+                        $('#is_admin_alert').css("opacity", "0");
+                    }
+                    else{
+                        $('#is_admin_alert').css("visibility", "visible");
+                        $('#is_admin_alert').css("opacity", "1");
+                        setTimeout(() => {
+                            $('#is_admin_alert').css("opacity", "0");
+                            setTimeout(() => {
+                                $('#is_admin_alert').css("visibility", "hidden");
+                                locked = false;
+                            }, 1000);
+                        }, 5000);
+                    }
                 }
                 return
             }
-            $('#is_admin_alert').ready(hide_alert())
+
+            $('#is_admin_alert').ready(function(){
+                $('#is_admin_alert').css("visibility", "hidden");
+                $('#is_admin_alert').css("opacity", "0");
+            })
+
         </script>
         {% block scripts %}
         {% endblock %}

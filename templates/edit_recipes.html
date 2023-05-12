@@ -27,16 +27,6 @@
     .hide{
         display: none !important;
     }
-    .invis{
-        visibility: hidden !important;
-    }
-    .th_invis{
-        color: #FFFFFF00 !important;
-        border-style: none none solid none !important;
-    }
-    .brighter{
-        opacity: 80% !important;
-    }
     .or::before {
         opacity: 15%;
     }
@@ -45,7 +35,7 @@
 
 {% block header_content %}
     <h1>Food Cost Estimator</h1>
-    <h2 class="invis">this is here just for spacing</h2>
+    <h2>Editting: Recipes</h2>
 {% endblock %}
 
 {% block main_content%}
@@ -82,7 +72,8 @@
             <th>Name</th>
             <th>Description</th>
             <th>Tags</th>
-            <th><button class="ui button invis" id="this is here only for spacing reasons">Selected</button></th>
+            <th>vw/edt/sv/crt</th>
+            <th>delete</th>
         </tr></thead>
         <tbody>
             {% for li in ns.results_in_page %}
@@ -93,15 +84,29 @@
                     <th>{{li[2]}}</th>
                     <th>{{li[3]}}</th>
                     <th>
-                        <button class="ui button inverted basic teal buttonSelect" id="b_select_{{id}}" data-id={{id}}>Select</button>
-                        <button class="ui button inverted olive disabled buttonSelected hide" id="b_selected_{{id}}" data-id={{id}}>Selected</button>
+                        <button class="ui button inverted basic teal buttonView" id="b_view_{{id}}" data-id={{id}}>View</button>
+                        <button class="ui button inverted olive buttonEdit hide" id="b_edit_{{id}}" data-id={{id}}>Edit</button>
+                        <div class="ui buttons duoButtonUpdate hide" id="b_duo_update_{{id}}">
+                            <button class="ui button grey buttonCancelUpdate" id="b_cancelUpdate_{{id}}" data-id={{id}}>Cancel</button>
+                            <div class="or" data-text=""></div>
+                            <button class="ui button inverted green buttonUpdate" id="b_update_{{id}}" data-id={{id}}>Update</button>
+                        </div>
+                    </th>
+                    <th>
+                        <button class="ui button inverted red buttonPreDelete" id="b_preDel_{{id}}" data-id={{id}}>Delete</button>
+                        <div class="ui buttons duoButtonDelete hide" id="b_duo_delete_{{id}}">
+                            <button class="ui button grey buttonCancelDelete" id="b_cancelDel_{{id}}" data-id={{id}}>Cancel</button>
+                            <div class="or" data-text=""></div>
+                            <button class="ui button inverted red buttonConfirmDelete" id="b_confirmDel_{{id}}" data-id={{id}}>Confirm</button>
+                        </div>
+                        <button class="ui button secondary disabled buttonDeleted hide" id="b_deleted_{{id}}">Deleted</button>
                     </th>
                 </tr>
             {% endfor %}
         </tbody>
         <tfoot>
         <tr>
-            <th colspan="3">
+            <th colspan="4">
             <div class="ui right floated pagination menu inverted">
                 {% if ns.page_number != 1  %}
                     <a class="icon item tablePage" data-pagenum="{{1}}">
@@ -138,57 +143,15 @@
                     </a>
                 {% endif %}
             </div>
-            </th>
+        </th>
         <th colspan="2">Page {{ns.page_number}} of {{ns.total_num_of_pages}}, Entries {{ns.starting_entry_index+1}}-{{ns.ending_entry_num}} shown of {{ns.total_num_of_results}}</th>
         </tr></tfoot>
     </table>
 
-    <div class="ui four column grid">
-        <div class="row">
-            <div class="column"><p>Recipe Amount:</p></div>
-            <div class="column"><p>Sale Price Percentage:</p></div>
-            <div class="column"><p>Total Cost:</p></div>
-            <div class="column"><p>Total Price:</p></div>
-        </div>
-        <div class="row">
-            <div class="column">
-                <div class="ui input">
-                    <input type="number" id="recipe_amt_input" type="number" placeholder="1" value="1" min="1" onchange="update_total_cost()">
-                </div>
-            </div>
-            <div class="column">
-                <div class="ui right labeled input">
-                    <select class="ui search dropdown" id="sale_pct_dropdown" onchange="update_total_cost()">
-                        <option value="100" selected="selected">100</option>
-                        <option value="25">25</option>
-                        <option value="28">28</option>
-                        <option value="30">30</option>
-                        <option value="32">32</option>
-                        <option value="35">35</option>
-                    </select>
-                    <div class="ui basic label">%</div>
-                </div>
-            </div>
-            <div class="column">
-                <div class="ui labeled input disabled focus brighter">
-                    <label for="amount" class="ui label">$</label>
-                    <input type="text" placeholder="" id="recipe_total_cost_output">
-                </div>
-            </div>
-            <div class="column">
-                <div class="ui labeled input disabled focus brighter">
-                    <label for="amount" class="ui label">$</label>
-                    <input type="text" placeholder="" id="recipe_total_price_output">
-                </div>
-            </div>
-        </div>
-    </div>
-
     <table class="ui celled table inverted long unstackable">
         <thead>
             <tr>
-                <th colspan="4" id="i_table_recipe_name"></th>
-                <th colspan="1" class="th_invis" id="this is here only for spacing">asdf</th>
+                <th colspan="5" id="i_table_recipe_name"></th>
             </tr>
             <tr>
                 <th>Ingredient</th>
@@ -200,11 +163,9 @@
         </thead>
         <tbody id="i_table_tbody">
         </tbody>
-        <tfoot id="i_table_tfoot">
+        <tfoot>
         </tfoot>
     </table>
-
-
 {% endif %}
 </div>
 {% endblock %}
@@ -220,14 +181,12 @@ var order = "{{ns.order}}";
 var recipe_inglist = [];
 var previous_id_clicked = 0
 
-var total_cost = 0
-
 $.fn.api.settings.api = {
     'get recipe list' : '/api/get_recipe_ingredients?recipe_id={id}',
 };
 
 function submit_search(new_search_string){
-    link = `/?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}`;
+    link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}`;
     window.location.replace(link);
 }
 
@@ -236,8 +195,8 @@ function view_button_actions(jq, values){
     recipe_name = $(`#th_name_${id}`).text()
     reset_views_button_group(previous_id_clicked)
     previous_id_clicked = id
-    $(`#b_select_${id}`).toggleClass('hide',true)
-    $(`#b_selected_${id}`).toggleClass('hide',false)
+    $(`#b_view_${id}`).toggleClass('hide',true)
+    $(`#b_edit_${id}`).toggleClass('hide',false)
     generate_ingredients_table(recipe_name,values)
 }
 
@@ -248,63 +207,35 @@ function generate_ingredients_table(recipe_name, values){
     //   0.00227666666 ]
     $("#i_table_recipe_name").text(recipe_name)
     $("#i_table_tbody").empty()
-    $("#i_table_tfoot").empty()
-    total_cost = 0.0
-    $("#recipe_total_cost_output").val("")
-    $("#recipe_total_price_output").val("")
-    
-    if(values.length == 0){
-        $("#i_table_tbody").append($("<tr><td colspan='5'>No ingredients found for this recipe</td></tr>"))
-        return
-    }
     for(let i of values){
         let i_cost = parseFloat(i[2]) * parseFloat(i[3])
         let new_tr = $(`
-            <tr>
-                <td>${i[0]}</td>
-                <td>${i[2]}</td>
-                <td>${i[1]}</td>
-                <td>$ ${i[3].toFixed(6)}</td>
-                <td>$ ${i_cost.toFixed(2)}</td>
-            </tr>
+        <tr>
+            <td>${i[0]}</td>
+            <td>${i[2]}</td>
+            <td>${i[1]}</td>
+            <td>$ ${i[3].toFixed(6)}</td>
+            <td>$ ${i_cost.toFixed(2)}</td>
+        </tr>
         `)
         $("#i_table_tbody").append(new_tr)
-        total_cost += i_cost
     }
-    // Calculations
-    new_tr = $(`
-        <tr>
-            <th colspan="3"></th>
-            <th>Subtotal:</th>
-            <th id="th_total_cost" data-value="${total_cost}">$ ${total_cost.toFixed(2)}</th>
-        </tr>
-    `)
-    $("#i_table_tfoot").append(new_tr)
-    update_total_cost()
 }
 
 function reset_views_button_group(id){
-    $(`#b_select_${id}`).toggleClass('hide',false)
-    $(`#b_selected_${id}`).toggleClass('hide',true)
-}
-
-function update_total_cost(){
-    if($("#th_total_cost").length == 0 || total_cost == 0){
-        return
-    }
-    cost = Number($("#th_total_cost").data()["value"])
-    amt = Number($("#recipe_amt_input").val())
-    pct = Number($("#sale_pct_dropdown").val())
-    total_cost_w_amt = amt * cost
-    total_price = total_cost_w_amt / ( pct/100 )
-    console.log(amt)
-    $("#recipe_total_cost_output").val(`${total_cost_w_amt.toFixed(2)}`)
-    $("#recipe_total_price_output").val(`${total_price.toFixed(2)}`)
+    console.log("asdf")
+    $(`#b_view_${id}`).toggleClass('hide',false)
+    $(`#b_edit_${id}`).toggleClass('hide',true)
+    $(`#b_duo_update_${id}`).toggleClass('hide',true)
 }
 
 $().ready(function(){
-    $('.buttonSelect').toggleClass('hide',false)
-    $('.buttonSelected').toggleClass('hide',true)
+    $('.buttonView').toggleClass('hide',false)
+    $('.buttonEdit').toggleClass('hide',true)
+    $('.duoButtonUpdate').toggleClass('hide',true)
+    $('.buttonPreDelete').toggleClass('hide',false)
+    $('.duoButtonDelete').toggleClass('hide',true)
+    $('.buttonDeleted').toggleClass('hide',true)
 });
 
 $(".tablePage").on( "click",
@@ -313,7 +244,7 @@ $(".tablePage").on( "click",
         if(next_pagenum == {{ns.page_number}}){
             return;
         }
-        link = `/?entries_per_page=${entries_per_page}&page_number=${next_pagenum}&search_string=${search_string}&sort_by=${sort_by}&order=${order}`;
+        link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${next_pagenum}&search_string=${search_string}&sort_by=${sort_by}&order=${order}`;
         $(this).attr("href", link);
     }
 );
@@ -330,18 +261,12 @@ $('.buttonSearchSubmit').on("click", function(e){
     submit_search($('#input_search').val())
 });
 
-$('.buttonSelect')
+$('.buttonView')
     .api({
         action: 'get recipe list',
         onSuccess: function(response, element, xhr) {
             view_button_actions($(this), response.message)
         }
-    })
-;
-
-$('.ui.dropdown')
-    .dropdown({
-        message: { noResults: ""},
     })
 ;
 </script>

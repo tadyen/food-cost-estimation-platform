@@ -13,7 +13,7 @@ body{
     background-repeat:no-repeat;
     background-attachment:fixed;
 }
-h1{
+header{
     text-align:center
 }
 footer{
@@ -21,4 +21,12 @@ footer{
     bottom: 1vh;
     left: 50%;
     transform: translate(-50%, -50%);
+}
+#is_admin_alert{
+    visibility: hidden;
+    transition: opacity 0.25s ease;
+}
+.invalid_user{
+    visibility: hidden;
+    transition: opacity 0.25s ease;
 }

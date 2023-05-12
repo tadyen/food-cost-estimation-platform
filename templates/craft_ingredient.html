@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block styles %}
+<style>
+    .wrapper{
+        margin: 3vh auto;
+        width: 90vw;
+    }
+    .invis{
+        visibility: hidden !important;
+    }
+    .hide{
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block header_content %}
+    <h1>Food Cost Estimator</h1>
+    <h2>Crafting: New Ingredient</h2>
+{% endblock %}
+
+{% block main_content %}
+<div class="wrapper">
+<div class="ui inverted segment">
+    <div class="ui inverted form">
+        <div class="four fields">
+            <div class="nine wide field">
+                <label>Name:</label>
+                <input placeholder="eg. Cake" type="text" name="name" id="i_name">
+                <div class="ui pointing red basic label hide" id="label_please_enter_a_name">
+                    Please enter a name
+                </div>
+                <div class="ui pointing red basic label hide" id="label_duplicate_name">
+                    <p>Duplicate found!</p>
+                    <a id="a_search_duplicate" href="#"><span class="ui text purple">Click here to search duplicate</span></a>
+                </div>
+            </div>
+            <div class="two wide field">
+                <label>Unit:</label>
+                <select class="ui search dropdown" name="unit" id="s_unit">
+                </select>
+                <div class="ui pointing red basic label hide" id="label_please_select_a_unit">
+                    Please select a unit
+                </div>
+            </div>
+            <div class="three wide field">
+                <label>Cost per Unit</label>
+                <input placeholder="eg. 0.00032" type="text" name="cost" id="i_cost">
+                <div class="ui pointing red basic label hide" id="label_please_enter_cost">
+                    Please enter a value
+                </div>
+                <div class="ui pointing red basic label hide" id="label_invalid_cost">
+                    Invalid input
+                </div>
+            </div>
+            <div class="one wide field">
+                <label class="invis">asdf</label>
+                <div class="ui submit button">Craft</div>
+                <div class="ui pointing green basic label hide" id="label_submitted">
+                    Submitted!
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+var units = []
+{% for x in allowed_units %}
+    units.push("{{x}}")
+{% endfor %}
+
+var select_options = []
+for(unit of units){
+    select_options.push({
+        name: unit,
+        value: unit,
+    })
+};
+
+function check_inputs(){
+    let everything_ok = true
+
+    name_input = $('#i_name').val()
+    unit_input = $('#s_unit').val()
+    cost_input = $('#i_cost').val()
+    
+    if( name_input == "" || name_input == null ){
+        $('#label_please_enter_a_name').toggleClass('hide',false)
+        everything_ok = false
+    }else{
+        $('#label_please_enter_a_name').toggleClass('hide',true)
+    }
+
+    if(unit_input == "" || unit_input == null){
+        $('#label_please_select_a_unit').toggleClass('hide',false)
+        everything_ok = false
+    }else{
+        $('#label_please_select_a_unit').toggleClass('hide',true)
+    }
+
+    if(cost_input == "" || cost_input == null){
+        $('#label_please_enter_cost').toggleClass('hide',false) 
+        everything_ok = false
+    }else{
+        $('#label_please_enter_cost').toggleClass('hide',true)
+    }
+    
+    isPFloat = /^\d+\.?\d+$/.test(cost_input)
+    isPInt = /^[1-9]\d*$/.test(cost_input)
+
+    if( ! ( cost_input == "" || cost_input == null ) ){
+        if( ! isPFloat && ! isPInt ){
+            $('#label_invalid_cost').toggleClass('hide',false) 
+            everything_ok = false
+        }else{
+            $('#label_invalid_cost').toggleClass('hide',true)
+        }
+    }
+    return everything_ok
+}
+
+function check_duplicate_name(){
+    // Deferred
+    // Will need to implement an exact search method first 
+    // Otherwise similar searches appear as duplicates
+    let name = $('#i_name').val()
+    let search_results
+    $.ajax({
+        url : `/api/get_ingredients_table?entries_per_page=9999&search_string=${name}`,
+        success : function(response, element, xhr) {
+            search_results = response.message
+            console.log(search_results)
+        }
+    })
+}
+
+$().ready(function(){
+    $('#label_please_enter_a_name').toggleClass('hide',true)
+    $('#label_please_select_a_unit').toggleClass('hide',true)
+    $('#label_please_enter_cost').toggleClass('hide',true)
+    $('#label_invalid_cost').toggleClass('hide',true)
+    $('#label_duplicate_name').toggleClass('hide',true)
+    $('#label_submitted').toggleClass('hide',true)
+});
+
+$('.ui.dropdown')
+.dropdown({
+    message: { noResults: ""},
+    values: select_options,
+});
+
+$('.ui.submit.button').on("click", function(e){
+    //check_duplicate_name()
+    if( check_inputs() ){
+        // submit
+        let name = $('#i_name').val()
+        let unit = $('#s_unit').val()
+        let cost = $('#i_cost').val()
+        $.post("/craft_ingredient", {name: name, unit: unit, cost: cost})
+        $('#label_submitted').toggleClass('hide',false)
+        setTimeout(() => {
+            $('#label_submitted').toggleClass('hide',true)
+        }, 2000);
+        $('#i_name').val("")
+        console.log($('#s_unit'))
+        $('#s_unit').dropdown('clear', true)
+        $('#i_cost').val("")
+    }
+});
+</script>
+{% endblock %}
