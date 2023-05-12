@@ -76,7 +76,9 @@
             <div class="header">You must be logged in as an admin to edit.</div>
         </div>
         <header>
+            {% block header_content %}
             <h1>Food Cost Estimator</h1>
+            {% endblock %}
         </header>
         <main>
         {% block main_content %}

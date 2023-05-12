@@ -1,4 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, session, request, jsonify, abort
+from enum import Enum
 
 from model.psql_interface import Psql_interface
 
@@ -21,6 +22,11 @@ TABLE_INGREDIENTS = "ingredients"
 TABLE_PAIRS = "recipe_ingredient_pairs"
 
 HTML_TABLE_DISPLAY_LIMIT = 10
+
+class IngredientUnits(Enum):
+    UNIT_G = "g"
+    UNIT_ML = "ml"
+    UNIT_unit = "unit"
 
 # ===================================================================================
 #  Flaskapp and psql Setup
@@ -277,19 +283,16 @@ def get_query_table(QueryTable: ApiGetQueryTable):
     
 def api_get_query_table(QueryTable: ApiGetQueryTable):
     results = get_query_table(QueryTable)
-    if results["success"] is True:
-        return jsonify({"message": results, "status": 200, "mimetype": 'application/json', "success": True})
-    elif results["payload"] is not None:
-        return abort(400, "Failed Query")
-    else:
+    if results["success"] is not True and results["payload"] is None:
         return abort(400, "Invalid GET parameters")
-
+    return jsonify({"message": results["payload"], "status": 200, "mimetype": 'application/json', "success": True})
+    
 def page_get_query_table(QueryTable: ApiGetQueryTable):
     results = get_query_table(QueryTable)
     return results["payload"]
     
 # ===================================================================================
-#  App routes
+#  Routes
 # ===================================================================================
 @app.route("/", methods=["GET","POST"])
 def html_home():
@@ -354,6 +357,33 @@ def html_edit_recipes():
         return redirect("/bad_page")
     return render_template("edit_recipes.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
 
+@app.route("/craft_ingredient", methods=["GET","POST"])
+def html_craft_ingredient():
+    (username, is_admin) = get_user_session()
+    if is_admin != "True":
+        return redirect("/")
+    allowed_units = list(IngredientUnits)
+    allowed_units = [ x.value for x in allowed_units]
+    if request.method == "GET":
+        return render_template("craft_ingredient.html", username=username, is_admin=is_admin, allowed_units=allowed_units)
+    if request.method == "POST":
+        try:
+            name = str( request.form.get("name") )
+            unit = str( request.form.get("unit") )
+            cost = float( request.form.get("cost") )
+            assert( unit in allowed_units )
+            assert( name != "" and name is not None )
+            assert( cost is not None )
+        except:
+            return redirect(html_bad_page, username=username)
+        query = f"""
+            INSERT INTO ingredients(name, unit, cost_per_unit)
+            VALUES(%s, %s, %s)
+            ; 
+        """
+        psql.psql_psycopg2_query(query, [name, unit, cost])
+        return render_template("craft_ingredient.html", username=username, is_admin=is_admin, allowed_units=allowed_units)
+        
 @app.route("/logout")
 def page_logout():
     session.clear()
@@ -361,11 +391,13 @@ def page_logout():
 
 @app.route("/bad_page")
 def html_bad_page():
-    return render_template("bad.html", username=None)
+    (username, is_admin) = get_user_session()
+    return render_template("bad.html", username=username)
         
 @app.route("/test")
 def html_test_page():
-    return render_template("test.html")
+    (username, is_admin) = get_user_session()
+    return render_template("test.html", username=username)
 
 # ===================================================================================
 #  GET API Routes
