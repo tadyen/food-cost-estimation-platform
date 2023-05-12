@@ -1,96 +1,344 @@
 {% extends "base.html" %}
-{% block main_content %}
-{% set ns = namespace(recipe_description="", recipe_tags="", total_sum=0.00, ) %}
-<form method="GET">
-    <select class="ui search dropdown inverted" name="recipe_id" onchange="this.form.submit()">
-        <option value="None">Select Recipe:</option>
-        {% for tup in recipes %}
-          {% if sel_recipe_id|int == tup[0] %}
-            <option value="{{ tup[0] }}" selected="selected">{{ tup[1] }}</option>
-            {% set ns.recipe_description = tup[2] %}
-            {% set ns.recipe_tags = tup[3] %}
-          {% else %}
-            <option value="{{ tup[0] }}">{{ tup[1] }}</option>
-          {% endif %}
-        {% endfor %}
-    </select>
-</form>
 
-{% if (sel_recipe_id != "None") %}
-  <p id="recipe_description">{{ ns.recipe_description }}</p>
-  <p>{{ 'Tags: %s' % ns.recipe_tags }} </p>
-{% endif %}
+{% set ns = namespace( 
+    entries_per_page=recipe_table["entries_per_page"],
+    page_number=recipe_table["page_number"],
+    search_string=recipe_table["search_string"],
+    sort_by=recipe_table["sort_by"],
+    order=recipe_table["order"],
+    table_name=recipe_table["table_name"],
+    starting_entry_index=recipe_table["starting_entry_index"],
+    ending_entry_num=recipe_table["ending_entry_num"],
+    total_num_of_pages=recipe_table["total_num_of_pages"],
+    total_num_of_results=recipe_table["total_num_of_results"],
+    results_in_page=recipe_table["results_in_page"] 
+    ) 
+%}
 
-{% if (ingredients != "None") and (sel_recipe_id != "None") %}
-  <table class="ui celled table inverted long unstackable collapsing">
-    <thead>
-      <tr>
-        <th></th>
-        <th>Ingredient</th>
-        <th>Amount</th>
-        <th>Unit</th>
-        <th>Cost/unit</th>
-        <th>Cost of ingredient</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for tup in ingredients %}
-        <tr>
-          <th>Edit</th>
-          <td>{{ tup[0] }}</td>
-          <td>{{ tup[2] }}</td>
-          <td>{{ tup[1] }}</td>
-          <td>{{ '$ %.6f' % tup[3] | float }}</td>
-          {% set sum = (tup[2] * tup[3]) %}
-          {% set ns.total_sum = (ns.total_sum + sum) %}
-          <td>{{ '$ %.2f' % sum | float }}</td>
-        </tr>
-      {% endfor %}
-      <tr>
-        <th>Add +</th>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td>-</td>
-        <td></td>
-      </tr>
-    </tbody>
-    <tfoot>
-      <tr>
-        <th></th>
-        <th></th>
-        <th></th>
-        <th></th>
-        <th>Subtotal:</th>
-        <th>{{'$ %.2f' % ns.total_sum | float}} ea</th>
-      </tr>
-      <tr>
-        <th>Recipe amount:</th>
-        <th>
-          <div class="ui input focus">
-            <input id="recipe_amt_input" type="number" placeholder="1" min="1" onchange="set_total()">
-          </div>
-        </th>
-        <th><p hidden id="p_hidden_sum">{{ns.total_sum}}<p></th>
-        <th></th>
-        <th>Total:</th>
-        <th id="th_total_cost">{{ '$ %0.2f' % ns.total_sum | float }}</th>
-      </tr>
-    </tfoot>
-  </table>
-{% endif %}
-
+{% block styles %}
+<style>
+    .wrapper{
+        margin: 0 auto;
+        width: 90vw;
+    }
+    #a_this_table_number{
+        border: solid 1px white;
+    }
+    .hide{
+        display: none !important;
+    }
+    .invis{
+        visibility: hidden !important;
+    }
+    .th_invis{
+        color: #FFFFFF00 !important;
+        border-style: none none solid none !important;
+    }
+    .brighter{
+        opacity: 80% !important;
+    }
+    .or::before {
+        opacity: 15%;
+    }
+</style>
 {% endblock %}
+
+{% block main_content%}
+<div class="wrapper">
+<div class="ui inverted segment">
+    <div class="ui form inverted">
+        <div class="inline fields">
+            <div class="fourteen wide field">
+                <input type="text" id="input_search" placeholder="Search for a recipe eg. Cake">
+            </div>
+            <div class="two wide field">
+                <div class="ui submit button buttonSearchSubmit">
+                    <i class="search icon"></i>
+                    Search
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% if ns.total_num_of_results == 0 %}
+    <div class="ui icon message">
+        <i class="box open icon"></i>
+        <div class="content">
+        <div class="header">
+            No results found.
+        </div>
+        <p>Try a different search?</p>
+        </div>
+    </div>
+{% else %}
+    <table class="ui celled very compact small striped table inverted">
+        <thead><tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Tags</th>
+            <th><button class="ui button invis" id="this is here only for spacing reasons">Selected</button></th>
+        </tr></thead>
+        <tbody>
+            {% for li in ns.results_in_page %}
+                {% set id = li[0] | int %}
+                <tr>
+                    <th>{{id}}</th>
+                    <th id="th_name_{{id}}">{{li[1]}}</th>
+                    <th>{{li[2]}}</th>
+                    <th>{{li[3]}}</th>
+                    <th>
+                        <button class="ui button inverted basic teal buttonSelect" id="b_select_{{id}}" data-id={{id}}>Select</button>
+                        <button class="ui button inverted olive disabled buttonSelected hide" id="b_selected_{{id}}" data-id={{id}}>Selected</button>
+                    </th>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+        <tr>
+            <th colspan="3">
+            <div class="ui right floated pagination menu inverted">
+                {% if ns.page_number != 1  %}
+                    <a class="icon item tablePage" data-pagenum="{{1}}">
+                        <i class="angle double left icon" ></i>
+                    </a>
+                    <a class="icon item tablePage" data-pagenum="{{ns.page_number-1}}">
+                        <i class="angle left icon"></i>
+                    </a>
+                {% endif %}
+                {% set start_page_num = ns.total_num_of_pages - 4 %}
+                {% set end_page_num = ns.page_number + 4 %}
+                {% if end_page_num > ns.total_num_of_pages %}
+                    {% set end_page_num = ns.total_num_of_pages %}
+                {% endif %}
+                {% if start_page_num < 1 %}
+                    {% set start_page_num = 1 %}
+                {% endif %}
+                {% if start_page_num > ns.page_number %}
+                    {% set start_page_num = ns.page_number %}
+                {% endif %}
+                {% for x in range(start_page_num, end_page_num+1) %}
+                    {% if x == ns.page_number %}
+                        <a class="item tablePage" id="a_this_table_number" data-pagenum="{{x}}">{{x}}</a>
+                    {% else %}
+                        <a class="item tablePage" data-pagenum="{{x}}">{{x}}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if not (ns.page_number >= ns.total_num_of_pages) %}
+                    <a class="icon item tablePage" data-pagenum="{{ns.page_number+1}}">
+                        <i class="angle right icon"></i>
+                    </a>
+                    <a class="icon item tablePage" data-pagenum="{{ ns.total_num_of_pages }}">
+                        <i class="angle double right icon"></i>
+                    </a>
+                {% endif %}
+            </div>
+            </th>
+        <th colspan="2">Page {{ns.page_number}} of {{ns.total_num_of_pages}}, Entries {{ns.starting_entry_index+1}}-{{ns.ending_entry_num}} shown of {{ns.total_num_of_results}}</th>
+        </tr></tfoot>
+    </table>
+
+    
+    <div class="ui four column grid">
+        <div class="row">
+            <div class="column"><p>Recipe Amount:</p></div>
+            <div class="column"><p>Sale Price Percentage:</p></div>
+            <div class="column"><p>Total Cost:</p></div>
+            <div class="column"><p>Total Price:</p></div>
+        </div>
+        <div class="row">
+            <div class="column">
+                <div class="ui input">
+                    <input type="number" id="recipe_amt_input" type="number" placeholder="1" value="1" min="1" onchange="update_total_cost()">
+                </div>
+            </div>
+            <div class="column">
+                <div class="ui right labeled input">
+                    <select class="ui search dropdown" id="sale_pct_dropdown" onchange="update_total_cost()">
+                        <option value="100" selected="selected">100</option>
+                        <option value="25">25</option>
+                        <option value="28">28</option>
+                        <option value="30">30</option>
+                        <option value="32">32</option>
+                        <option value="35">35</option>
+                    </select>
+                    <div class="ui basic label">%</div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="ui labeled input disabled focus brighter">
+                    <label for="amount" class="ui label">$</label>
+                    <input type="text" placeholder="" id="recipe_total_cost_output">
+                </div>
+            </div>
+            <div class="column">
+                <div class="ui labeled input disabled focus brighter">
+                    <label for="amount" class="ui label">$</label>
+                    <input type="text" placeholder="" id="recipe_total_price_output">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <table class="ui celled table inverted long unstackable">
+        <thead>
+            <tr>
+                <th colspan="4" id="i_table_recipe_name"></th>
+                <th colspan="1" class="th_invis" id="this is here only for spacing">asdf</th>
+            </tr>
+            <tr>
+                <th>Ingredient</th>
+                <th>Amount</th>
+                <th>Unit</th>
+                <th>Cost/unit</th>
+                <th>Cost of ingredient</th>
+            </tr>
+        </thead>
+        <tbody id="i_table_tbody">
+        </tbody>
+        <tfoot id="i_table_tfoot">
+        </tfoot>
+    </table>
+
+
+{% endif %}
+</div>
+{% endblock %}
+
 {% block scripts %}
 <script>
-$('.ui.dropdown')
-  .dropdown()
-;
-function set_total(){
-  recipe_amt = parseFloat( $('#recipe_amt_input').val() );
-  recipe_cost = parseFloat( $('#p_hidden_sum').text() );
-  total_cost = recipe_amt * recipe_cost;
-  $("#th_total_cost").text( '$ ' + String(total_cost.toFixed(2)) );
+var page_number = {{ns.page_number}};
+var entries_per_page = {{ns.entries_per_page}};
+var search_string = "{{ ns.search_string }}";
+var sort_by = "{{ns.sort_by}}";
+var order = "{{ns.order}}";
+
+var recipe_inglist = [];
+var previous_id_clicked = 0
+
+var total_cost = 0
+
+$.fn.api.settings.api = {
+    'get recipe list' : '/api/get_recipe_ingredients?recipe_id={id}',
+};
+
+function submit_search(new_search_string){
+    link = `/?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}`;
+    window.location.replace(link);
 }
+
+function view_button_actions(jq, values){
+    id = jq.data()['id']
+    recipe_name = $(`#th_name_${id}`).text()
+    reset_views_button_group(previous_id_clicked)
+    previous_id_clicked = id
+    $(`#b_select_${id}`).toggleClass('hide',true)
+    $(`#b_selected_${id}`).toggleClass('hide',false)
+    generate_ingredients_table(recipe_name,values)
+}
+
+function generate_ingredients_table(recipe_name, values){
+    // [ "eg. Sugar",
+    //   "g",
+    //   150.0,
+    //   0.00227666666 ]
+    $("#i_table_recipe_name").text(recipe_name)
+    $("#i_table_tbody").empty()
+    $("#i_table_tfoot").empty()
+    total_cost = 0.0
+    $("#recipe_total_cost_output").val("")
+    $("#recipe_total_price_output").val("")
+    
+    if(values.length == 0){
+        $("#i_table_tbody").append($("<tr><td colspan='5'>No ingredients found for this recipe</td></tr>"))
+        return
+    }
+    for(let i of values){
+        let i_cost = parseFloat(i[2]) * parseFloat(i[3])
+        let new_tr = $(`
+            <tr>
+                <td>${i[0]}</td>
+                <td>${i[2]}</td>
+                <td>${i[1]}</td>
+                <td>$ ${i[3].toFixed(6)}</td>
+                <td>$ ${i_cost.toFixed(2)}</td>
+            </tr>
+        `)
+        $("#i_table_tbody").append(new_tr)
+        total_cost += i_cost
+    }
+    // Calculations
+    new_tr = $(`
+        <tr>
+            <th colspan="3"></th>
+            <th>Subtotal:</th>
+            <th id="th_total_cost" data-value="${total_cost}">$ ${total_cost.toFixed(2)}</th>
+        </tr>
+    `)
+    $("#i_table_tfoot").append(new_tr)
+    update_total_cost()
+}
+
+function reset_views_button_group(id){
+    $(`#b_select_${id}`).toggleClass('hide',false)
+    $(`#b_selected_${id}`).toggleClass('hide',true)
+}
+
+function update_total_cost(){
+    if($("#th_total_cost").length == 0 || total_cost == 0){
+        return
+    }
+    cost = Number($("#th_total_cost").data()["value"])
+    amt = Number($("#recipe_amt_input").val())
+    pct = Number($("#sale_pct_dropdown").val())
+    total_cost_w_amt = amt * cost
+    total_price = total_cost_w_amt / ( pct/100 )
+    console.log(amt)
+    $("#recipe_total_cost_output").val(`${total_cost_w_amt.toFixed(2)}`)
+    $("#recipe_total_price_output").val(`${total_price.toFixed(2)}`)
+}
+
+$().ready(function(){
+    $('.buttonSelect').toggleClass('hide',false)
+    $('.buttonSelected').toggleClass('hide',true)
+});
+
+$(".tablePage").on( "click",
+    function(e){
+        let next_pagenum = $(this).data()['pagenum'];
+        if(next_pagenum == {{ns.page_number}}){
+            return;
+        }
+        link = `/?entries_per_page=${entries_per_page}&page_number=${next_pagenum}&search_string=${search_string}&sort_by=${sort_by}&order=${order}`;
+        $(this).attr("href", link);
+    }
+);
+
+$('#input_search').on('keydown', function(e){
+    if( $(this).is(":focus") ){
+        if(e.originalEvent.key == 'Enter'){
+            submit_search($(this).val())
+        }
+    }
+});
+
+$('.buttonSearchSubmit').on("click", function(e){
+    submit_search($('#input_search').val())
+});
+
+$('.buttonSelect')
+    .api({
+        action: 'get recipe list',
+        onSuccess: function(response, element, xhr) {
+            view_button_actions($(this), response.message)
+        }
+    })
+;
+
+$('.ui.dropdown')
+    .dropdown({
+        message: { noResults: ""},
+    })
+;
 </script>
 {% endblock %}

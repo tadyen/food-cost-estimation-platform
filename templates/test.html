@@ -2,6 +2,17 @@
 
 {% block main_content%}
 <button class="ui button inverted buttonTest" >Test</button>
+
+<form method="GET">
+  <select class="ui search dropdown inverted" name="recipe_id" onchange="this.form.submit()">
+    <option value="None">Select Recipe:</option>
+    <option value="None">Select Recipe:</option>
+    <option value="None">Select Recipe:</option>
+  </select>
+</form>
+
+
+
 {% endblock %}
 {% block scripts %}
 <script>
@@ -47,6 +58,8 @@ $('.buttonTest')
     }
   })
 ;
-
+$('.ui.dropdown')
+  .dropdown()
+;
 </script>
 {% endblock %}

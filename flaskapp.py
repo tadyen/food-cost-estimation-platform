@@ -211,40 +211,11 @@ class ApiGetQueryTable():
         }
         return results
     
-def api_get_query_table(QueryTable: ApiGetQueryTable):
-    columns = psql.obtain_table_fields(QueryTable.table_name)
-    columns = [x[0] for x in columns]
-    if request.method == "GET":
-        entries_per_page    = request.args.get('entries_per_page')
-        page_number         = request.args.get('page_number')
-        search_string       = request.args.get('search_string')
-        sort_by             = request.args.get('sort_by')
-        order               = request.args.get('order')
-        entries_per_page    = entries_per_page  if entries_per_page     is not None else ""
-        page_number         = page_number       if page_number          is not None else ""
-        search_string       = search_string     if search_string        is not None else ""
-        sort_by             = sort_by           if sort_by              is not None else ""
-        order               = order             if order                is not None else ""
-    try:
-        entries_per_page    = int(entries_per_page)
-        page_number         = int(page_number)
-        search_string       = str(search_string)
-        sort_by             = str(sort_by)
-        order               = str(order).upper()
-        assert(entries_per_page >= 1)
-        assert(page_number >= 1)
-        assert(sort_by in [*columns,""])
-        assert(order in ["ASC","DESC",""])
-    except:
-        return abort(400, "Invalid GET parameters")
-    if(QueryTable.set_params(entries_per_page, page_number, search_string, sort_by, order)):
-        message = QueryTable.results()
-        if message is not None:
-            return jsonify({"message": message, "status": 200, "mimetype": 'application/json', "success": True})
-        else:
-            return abort(400, "Failed Query")
-    else:
-        return abort(400, "Invalid GET parameters")
+def get_user_session():        
+    username = session["username"] if "username" in session else "None"
+    is_admin = session["is_admin"] if "is_admin" in session else False
+    is_admin = "True" if is_admin else "False"
+    return (username, is_admin)
 
 def segregate_search_string(search_string:str):
     """Converts all symbols in string to spaces then breaks it into bits"""
@@ -256,66 +227,9 @@ def segregate_search_string(search_string:str):
     components = sanitised.split()
     return components
 
-# ===================================================================================
-#  App routes
-# ===================================================================================
-
-@app.route("/", methods=["GET"])
-def html_home():
-    username = session["username"] if "username" in session else "None"
-    is_admin = session["is_admin"] if "is_admin" in session else False
-    is_admin = "True" if is_admin else "False"
-    # return render_template("home.html", username=username, is_admin=is_admin)
-    query = f"SELECT * FROM recipes;"
-    recipes = psql.psql_psycopg2_query(query)
-    if request.method == "GET":
-        sel_recipe_id = "None"
-        ingredients = "None"
-        try:
-            recipe_id = request.args.get("recipe_id")
-            int(recipe_id)
-            sel_recipe_id=recipe_id
-            query = f"""SELECT name, unit, amount_of_units, cost_per_unit FROM 
-            (recipe_ingredient_pairs as p INNER JOIN ingredients as i ON p.ingredient_id = i.id)
-            WHERE p.recipe_id = {recipe_id}
-            ;
-            """
-            ingredients = psql.psql_psycopg2_query(query)
-        except:
-            return render_template("home.html", username=username, is_admin=is_admin, recipes=recipes, sel_recipe_id=sel_recipe_id, ingredients=ingredients)
-    return render_template("home.html", username=username, is_admin=is_admin, recipes=recipes, sel_recipe_id=sel_recipe_id, ingredients=ingredients)
-
-@app.route("/signin", methods=["GET","POST"])
-def html_signin():
-    username = session["username"] if "username" in session else "None"
-    if username != "None":
-        return redirect("/")
-    if request.method == "GET":
-        return render_template("signin.html", username="None", invalid_user="False", is_admin="False")
-    if request.method == "POST":
-        user = request.form.get("username")
-        users = psql.psql_psycopg2_query("SELECT username FROM users;")
-        users = [tup[0] for tup in users]
-        if not (user in users):
-            return render_template("signin.html", username="None", invalid_user="True", is_admin="False")
-        sql_query = f"SELECT password_hash FROM users WHERE username = '{user}'"
-        hashed_password = psql.psql_psycopg2_query(sql_query)[0][0]
-        isValidPassword = bcrypt.checkpw(request.form.get("password").encode(), hashed_password.encode())
-        if not (isValidPassword):
-            return render_template("signin.html", username="None", invalid_user="True", is_admin="False")
-        session["username"] = user
-        sql_query = f"SELECT is_admin FROM users WHERE username = '{user}'"
-        session["is_admin"] = psql.psql_psycopg2_query(sql_query)[0][0]
-        return redirect("/")
-
-@app.route("/edit_recipes", methods=["GET","POST"])
-def html_edit_recipes():
-    username = session["username"] if "username" in session else "None"
-    is_admin = session["is_admin"] if "is_admin" in session else False
-    is_admin = "True" if is_admin else "False"
-    if is_admin != "True":
-        return redirect("/")
-    columns = psql.obtain_table_fields(RecipeTable.table_name)
+def get_query_table(QueryTable: ApiGetQueryTable):
+    table_name = QueryTable.table_name
+    columns = psql.obtain_table_fields(table_name)
     columns = [x[0] for x in columns]
     if request.method == "GET":
         entries_per_page    = request.args.get('entries_per_page')
@@ -339,14 +253,13 @@ def html_edit_recipes():
         assert(sort_by in [*columns,""])
         assert(order in ["ASC","DESC",""])
     except:
-        return redirect("/bad_page")
-    if(RecipeTable.set_params(entries_per_page, page_number, search_string, sort_by, order)):
-        recipe_table = RecipeTable.results()
-    if recipe_table is None:
-        # return a result so the page knows that search provided no results
-        recipe_table = {
+        return ({"success": False, "payload": None})
+    if(QueryTable.set_params(entries_per_page, page_number, search_string, sort_by, order)):
+        results_table = QueryTable.results()
+    if results_table is None:
+        results_table = {
             # params for GET query
-            "table_name": "recipes",
+            "table_name": table_name,
             "entries_per_page": entries_per_page,
             "page_number": page_number,
             "search_string": search_string,
@@ -359,44 +272,87 @@ def html_edit_recipes():
             "ending_entry_num": 0,
             "results_in_page": 0,
         }
-    return render_template("edit_recipes.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
+        return ({"success": False, "payload": results_table})
+    return ({"success": True, "payload": results_table})
     
-@app.route("/edit_recipes_old", methods=["GET","POST"])
-def html_edit_recipes_old():
-    username = session["username"] if "username" in session else "None"
-    is_admin = session["is_admin"] if "is_admin" in session else False
-    is_admin = "True" if is_admin else "False"
-    if is_admin != "True":
+def api_get_query_table(QueryTable: ApiGetQueryTable):
+    results = get_query_table(QueryTable)
+    if results["success"] is True:
+        return jsonify({"message": results, "status": 200, "mimetype": 'application/json', "success": True})
+    elif results["payload"] is not None:
+        return abort(400, "Failed Query")
+    else:
+        return abort(400, "Invalid GET parameters")
+
+def page_get_query_table(QueryTable: ApiGetQueryTable):
+    results = get_query_table(QueryTable)
+    return results["payload"]
+    
+# ===================================================================================
+#  App routes
+# ===================================================================================
+@app.route("/", methods=["GET","POST"])
+def html_home():
+    (username, is_admin) = get_user_session()
+    recipe_table = page_get_query_table(RecipeTable)
+    if recipe_table is None:
+        return redirect("/bad_page")
+    return render_template("home.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
+
+@app.route("/old_home", methods=["GET"])
+def html_home_old():
+    (username, is_admin) = get_user_session()
+    query = f"SELECT * FROM recipes;"
+    recipes = psql.psql_psycopg2_query(query)
+    if request.method == "GET":
+        sel_recipe_id = "None"
+        ingredients = "None"
+        try:
+            recipe_id = request.args.get("recipe_id")
+            int(recipe_id)
+            sel_recipe_id=recipe_id
+            query = f"""SELECT name, unit, amount_of_units, cost_per_unit FROM 
+            (recipe_ingredient_pairs as p INNER JOIN ingredients as i ON p.ingredient_id = i.id)
+            WHERE p.recipe_id = {recipe_id}
+            ;
+            """
+            ingredients = psql.psql_psycopg2_query(query)
+        except:
+            return render_template("home_old.html", username=username, is_admin=is_admin, recipes=recipes, sel_recipe_id=sel_recipe_id, ingredients=ingredients)
+    return render_template("home_old.html", username=username, is_admin=is_admin, recipes=recipes, sel_recipe_id=sel_recipe_id, ingredients=ingredients)
+
+@app.route("/signin", methods=["GET","POST"])
+def html_signin():
+    (username, is_admin) = get_user_session()
+    if username != "None":
         return redirect("/")
     if request.method == "GET":
-        table_num = request.args.get('tableNum')
-    
-    if table_num is not None:
-        current_page=int(table_num)
-    else:
-        current_page=1
-    
-    # This is apparently a cheap operation    
-    query = f"SELECT COUNT(*) FROM recipes;"
-    no_of_recipes = psql.psql_psycopg2_query(query)[0][0]
-    
-    # THIS MAY NEED TO BE CHANGED FOR SCALABILITY REASONS. 
-    # It is not good to re-query EVERYTHING and store into heap every reload.
-    query = f"SELECT * FROM recipes;"
-    all_recipes = psql.psql_psycopg2_query(query)
-    
-    entries_per_table = HTML_TABLE_DISPLAY_LIMIT
-    no_of_pages = math.ceil(no_of_recipes/entries_per_table)
-    starting_index = int( (current_page - 1) * entries_per_table  )
-    rem_num = no_of_recipes - starting_index 
-    if rem_num >= entries_per_table:
-        recipes = all_recipes[ starting_index : (starting_index + entries_per_table ) ]
-    else:
-        recipes = all_recipes[ starting_index : rem_num ]
-    if request.method == "GET":
-        return render_template("edit_recipes_old.html", 
-            username=username, is_admin=is_admin, recipes=recipes, no_of_pages=no_of_pages, starting_index=starting_index,
-            current_page=current_page, entries_per_table=entries_per_table)
+        return render_template("signin.html", username="None", invalid_user="False", is_admin="False")
+    if request.method == "POST":
+        user = request.form.get("username")
+        users = psql.psql_psycopg2_query("SELECT username FROM users;")
+        users = [tup[0] for tup in users]
+        if not (user in users):
+            return render_template("signin.html", username="None", invalid_user="True", is_admin="False")
+        sql_query = f"SELECT password_hash FROM users WHERE username = '{user}'"
+        hashed_password = psql.psql_psycopg2_query(sql_query)[0][0]
+        isValidPassword = bcrypt.checkpw(request.form.get("password").encode(), hashed_password.encode())
+        if not (isValidPassword):
+            return render_template("signin.html", username="None", invalid_user="True", is_admin="False")
+        session["username"] = user
+        sql_query = f"SELECT is_admin FROM users WHERE username = '{user}'"
+        session["is_admin"] = psql.psql_psycopg2_query(sql_query)[0][0]
+        return redirect("/")
+
+@app.route("/edit_recipes", methods=["GET","POST"])
+def html_edit_recipes():
+    (username, is_admin) = get_user_session()
+    if is_admin != "True":
+        return redirect("/")
+    recipe_table = page_get_query_table(RecipeTable)
+    if recipe_table is None:
+        return redirect("/bad_page")
+    return render_template("edit_recipes.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
 
 @app.route("/logout")
 def page_logout():
