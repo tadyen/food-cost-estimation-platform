@@ -56,6 +56,13 @@ psql = Psql_interface(PGUSER, PGPASS, DB_NAME, src_path, pghost=DB_HOST, pgport=
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "Some secret key lmao"
 
+print("Psycopg2 Query")
+query = "SELECT * FROM TABLE_RECIPES;" 
+print(psql.psql_psycopg2_query(query))
+print()
+print("psqlshell Query")
+print(psql.psql_shell_query)
+print()
 # ===================================================================================
 #  Declarations
 # ===================================================================================
