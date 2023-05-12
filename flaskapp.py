@@ -1,5 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, session, request, jsonify, abort
 from enum import Enum
+from dotenv import load_dotenv
 
 from model.psql_interface import Psql_interface
 
@@ -13,11 +14,13 @@ ENV_FILE = ".env"
 HERE_ABSPATH = os.path.dirname( os.path.realpath( sys.argv[0] ) )
 
 if os.path.isfile(ENV_FILE):
+    load_dotenv()
     PGUSER=os.getenv('PGUSER')
     PGPASS=os.getenv('PGPASS')
     DB_HOST=os.getenv('DB_HOST')
     DB_NAME=os.getenv('DB_NAME')
     DB_PORT=os.getenv('DB_PORT')
+    print('envfile')
 else:
     PGUSER = "postgres"
     PGPASS_FILE = "./model/.pgpass"
@@ -57,11 +60,11 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "Some secret key lmao"
 
 print("Psycopg2 Query")
-query = "SELECT * FROM TABLE_RECIPES;" 
+query = f"SELECT * FROM {TABLE_RECIPES};" 
 print(psql.psql_psycopg2_query(query))
 print()
 print("psqlshell Query")
-print(psql.psql_shell_query)
+print(psql.psql_shell_query(query))
 print()
 # ===================================================================================
 #  Declarations
