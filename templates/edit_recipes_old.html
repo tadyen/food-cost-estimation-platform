@@ -1,18 +1,4 @@
 {% extends "base.html" %}
-
-{% set ns = namespace( 
-    entries_per_page=recipe_table["entries_per_page"],
-    page_number=recipe_table["page_number"],
-    search_string=recipe_table["search_string"],
-    sort_by=recipe_table["sort_by"],
-    order=recipe_table["order"],
-    table_name=recipe_table["table_name"],
-    starting_entry_index=recipe_table["starting_entry_index"],
-    ending_entry_num=recipe_table["ending_entry_num"],
-    total_num_of_pages=recipe_table["total_num_of_pages"],
-    total_num_of_results=recipe_table["total_num_of_results"],
-    results_in_page=recipe_table["results_in_page"] ) %}
-
 {% block styles %}
 <style>
     .wrapper{
@@ -30,7 +16,6 @@
     }
 </style>
 {% endblock %}
-
 {% block main_content%}
 <div class="wrapper">
 <table class="ui celled very compact small striped table inverted">
@@ -43,13 +28,13 @@
         <th>delete</th>
     </tr></thead>
     <tbody>
-        {% for li in ns.results_in_page %}
-            {% set id = li[0] | int %}
+        {% for tup in recipes %}
+            {% set id = tup[0] | int %}
             <tr>
                 <th>{{id}}</th>
-                <th>{{li[1]}}</th>
-                <th>{{li[2]}}</th>
-                <th>{{li[3]}}</th>
+                <th>{{tup[1]}}</th>
+                <th>{{tup[2]}}</th>
+                <th>{{tup[3]}}</th>
                 <th>
                     <button class="ui button inverted basic teal buttonView" id="b_view_{{id}}" data-id={{id}}>View</button>
                     <button class="ui button inverted basic olive buttonEdit" id="b_edit_{{id}}" data-id={{id}}>Edit</button>
@@ -75,67 +60,83 @@
       <tr>
         <th colspan="4">
         <div class="ui right floated pagination menu inverted">
-            {% if ns.page_number != 1  %}
-                <a class="icon item tablePage" data-pagenum="{{1}}">
+            {% if current_page != 1  %}
+                <a class="icon item"href="/edit_recipes_old?tableNum={{1}}">
                     <i class="angle double left icon" ></i>
                 </a>
-                <a class="icon item tablePage" data-pagenum="{{ns.page_number-1}}">
+                <a class="icon item" href="/edit_recipes_old?tableNum={{current_page-1}}">
                     <i class="angle left icon"></i>
                 </a>
+                <a class="item" href="/edit_recipes_old?tableNum={{current_page-1}}">{{current_page-1}}</a>
             {% endif %}
-            {% set start_page_num = ns.total_num_of_pages - 4 %}
-            {% set end_page_num = ns.page_number + 4 %}
-            {% if end_page_num > ns.total_num_of_pages %}
-                {% set end_page_num = ns.total_num_of_pages %}
+            <a class="item" id="a_this_table_number">{{current_page}}</a>
+            {% set page_num = current_page + 1%}
+            {% set end_page_num = current_page + 3 %}
+            {% if end_page_num > no_of_pages %}
+                {% set end_page_num = no_of_pages %}
             {% endif %}
-            {% if start_page_num < 1 %}
-                {% set start_page_num = 1 %}
-            {% endif %}
-            {% if start_page_num > ns.page_number %}
-                {% set start_page_num = ns.page_number %}
-            {% endif %}
-            {% for x in range(start_page_num, end_page_num+1) %}
-                {% if x == ns.page_number %}
-                    <a class="item tablePage" id="a_this_table_number" data-pagenum="{{x}}">{{x}}</a>
-                {% else %}
-                    <a class="item tablePage" data-pagenum="{{x}}">{{x}}</a>
-                {% endif %}
+            {% for x in range(page_num, end_page_num+1) %}
+                <a class="item" href="/edit_recipes_old?tableNum={{x}}">{{x}}</a>
             {% endfor %}
-            {% if not (ns.page_number >= ns.total_num_of_pages) %}
-                <a class="icon item tablePage" data-pagenum="{{ns.page_number+1}}">
+            {% if not (current_page >= no_of_pages) %}
+                <a class="icon item" href="/edit_recipes_old?tableNum={{current_page+1}}">
                     <i class="angle right icon"></i>
                 </a>
-                <a class="icon item tablePage" data-pagenum="{{ ns.total_num_of_pages }}">
+                <a class="icon item" href="/edit_recipes_old?tableNum={{no_of_pages}}">
                     <i class="angle double right icon"></i>
                 </a>
             {% endif %}
         </div>
       </th>
-      <th colspan="2">Page {{ns.page_number}} of {{ns.total_num_of_pages}}, Entries {{ns.starting_entry_index+1}}-{{ns.ending_entry_num}} shown of {{ns.total_num_of_results}}</th>
+      {% set last_entry_index = starting_index + recipes|length %}
+      <th colspan="2">Page {{current_page}} of {{no_of_pages}}, Entries {{starting_index+1}}-{{last_entry_index}} shown</th>
     </tr></tfoot>
 </table>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script>
-$(".tablePage").on( "click",
-    function(e){
-        let next_pagenum = $(this).data()['pagenum'];
-        if(next_pagenum == {{ns.page_number}}){
-            return;
-        }
-        let entries_per_page = {{ns.entries_per_page}};
-        let search_string = "{{ ns.search_string }}";
-        let sort_by = "{{ns.sort_by}}"
-        let order = "{{ns.order}}"
-        link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${next_pagenum}&search_string=${search_string}&sort_by=${sort_by}&order=${order}`;
-        $(this).attr("href", link);
+$.fn.api.settings.api = {
+    'get recipe list' : '/api/get_recipe_ingredients?recipe_id={id}',
+};
+var recipe_inglist = []
+$('.buttonView')
+  .api({
+    action: 'get recipe list',
+    onResponse: function(response) {
+      // make some adjustments to response
+      console.log("asdf onResponse")
+      return response;
+    },
+    successTest: function(response) {
+      // test whether a JSON response is valid
+      console.log("asdf successTest")
+      return response.success || false;
+    },
+    onComplete: function(response, element, xhr) {
+        console.log("asdf onComplete")
+        recipe_ingredient_list = response.message
+        console.log(recipe_ingredient_list.length)
+      // always called after XHR complete
+    },
+    onSuccess: function(response, element, xhr) {
+      // valid response and response.success = true
+      console.log("asdf onSuccess")
+    },
+    onFailure: function(response, element, xhr) {
+      // request failed, or valid response but response.success = false
+      console.log("asdf onFailure")
+    },
+    onError: function(errorMessage, element, xhr) {
+      // invalid response
+      console.log("asdf onError")
+    },
+    onAbort: function(errorMessage, element, xhr) {
+        console.log("asdf onAbort")
+      // navigated to a new page, CORS issue, or user canceled request
     }
-);
-
-
-
+  })
+;
 $().ready(function(){
     $('.buttonView').toggleClass('hide',false)
     $('.buttonEdit').toggleClass('hide',true)
@@ -144,5 +145,12 @@ $().ready(function(){
     $('.duoButtonDelete').toggleClass('hide',true)
     $('.buttonDeleted').toggleClass('hide',true)
 });
+$('.buttonConfirmDelete').on("click", function(e){
+    e.target.classList.add('hide')
+});
+function b_edit_click(id){
+    console.log(id)
+    console.log(recipe_ingredient_list.length())
+}
 </script>
 {% endblock %}
