@@ -26,6 +26,12 @@ else:
     DB_NAME = "food_cost_estimator"
     DB_PORT = 5432
 
+print(PGUSER)
+print(PGPASS)
+print(DB_HOST)
+print(DB_NAME)
+print(DB_PORT)
+
 SRC_PATH = "./src"
 IMG_PATH = "static/imgs/"
 
