@@ -20,7 +20,6 @@ if os.path.isfile(ENV_FILE):
     DB_HOST=os.getenv('DB_HOST')
     DB_NAME=os.getenv('DB_NAME')
     DB_PORT=os.getenv('DB_PORT')
-    print('envfile')
 else:
     PGUSER = "postgres"
     PGPASS_FILE = "./model/.pgpass"
@@ -30,7 +29,6 @@ else:
     DB_PORT = 5432
 
 print(PGUSER)
-print(PGPASS)
 print(DB_HOST)
 print(DB_NAME)
 print(DB_PORT)
@@ -59,11 +57,16 @@ psql = Psql_interface(PGUSER, PGPASS, DB_NAME, src_path, pghost=DB_HOST, pgport=
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "Some secret key lmao"
 
-print("Psycopg2 Query")
-query = f"SELECT * FROM {TABLE_RECIPES};" 
+print("Sanity Psycopg2 Query")
+query = f"""
+    SELECT tablename, schemaname, tableowner
+    FROM pg_catalog.pg_tables
+    WHERE schemaname != 'pg_catalog'
+    AND schemaname != 'information_schema'
+    ORDER BY tablename ASC;"""
 print(psql.psql_psycopg2_query(query))
 print()
-print("psqlshell Query")
+print("Sanity psqlshell Query")
 print(psql.psql_shell_query(query))
 print()
 # ===================================================================================
