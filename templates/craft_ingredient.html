@@ -161,7 +161,7 @@ $('.ui.submit.button').on("click", function(e){
         let name = $('#i_name').val()
         let unit = $('#s_unit').val()
         let cost = $('#i_cost').val()
-        $.post("/craft_ingredient", {name: name, unit: unit, cost: cost})
+        $.post("/api/craft_ingredient", {name: name, unit: unit, cost: cost})
         $('#label_submitted').toggleClass('hide',false)
         setTimeout(() => {
             $('#label_submitted').toggleClass('hide',true)

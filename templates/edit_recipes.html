@@ -37,6 +37,10 @@
         color: #FFFFFF00 !important;
         border-style: none none solid none !important;
     }
+    .toast-container{
+        top: 20% !important;
+        left: 70% !important;
+    }
 </style>
 {% endblock %}
 
@@ -85,7 +89,7 @@
         <tbody>
             {% for li in ns.results_in_page %}
                 {% set id = li[0] | int %}
-                <tr>
+                <tr id="tr_recipes_{{id}}">
                     <th id="th_id_{{id}}">{{id}}</th>
                     <th id="th_name_{{id}}">{{li[1]}}</th>
                     <th id="th_desc_{{id}}">{{li[2]}}</th>
@@ -214,23 +218,45 @@ function view_button_actions(jq, values){
 }
 
 $('.buttonEdit').on("click",function(e){
-    edit_button_actions($(this))
-});
-function edit_button_actions(jq){
-    id = jq.data()['id']
+    id = $(this).data()['id']
     $(`#b_edit_${id}`).toggleClass('hide',true)
     $(`#b_duo_update_${id}`).toggleClass('hide',false)
     convert_to_input($(`#th_name_${id}`))
     convert_to_input($(`#th_desc_${id}`))
     convert_to_input($(`#th_tags_${id}`))
     $('.buttonIngRemove').toggleClass('hide',false)
+    $('.trAddIng').toggleClass('hide',false)
     $('.tdIngAmt')
         .one("load", function(e){
             convert_to_input($(this))
         })
         .trigger("load")
-    
-};
+    $('.buttonPreDelete').toggleClass('disabled',true)
+});
+
+$('.buttonCancelUpdate').on("click",function(e){
+    id = $(this).data()['id']
+    reset_views_button_group(id)
+});
+
+
+$('.buttonUpdate').on("click",function(e){
+    id = $(this).data()['id']
+    $('.inputFromField')
+    .one("load", function(e){
+        deconvert_input($(this),'update')
+    })
+    .trigger("load")
+    $.toast({
+        message: 'Updated!',
+        position: 'centered',
+        class : 'green inverted basic',
+        className: {
+            toast: 'ui message'
+        }
+    });
+    reset_views_button_group(id)
+});
 
 function convert_to_input(jq){
     textContent = jq.text()
@@ -238,20 +264,30 @@ function convert_to_input(jq){
     new_elem_id = `conv_${elem_id}`
     jq.empty()
     new_input_stuff = $(`
-    <div class="ui small fluid inverted input" id="${new_elem_id}">
-        <input type="text" value="${textContent}">
+    <div class="ui small fluid inverted input inputFromField" id="${new_elem_id}">
+        <input type="text" class="inputNewVal" value="${textContent}">
+        <input type="text" class="inputOldVal hide" value="${textContent}" disabled>
     </div>
     `)
     jq.append(new_input_stuff)
 }
 
-function deconvert_input(jq){
-    input_elem = jq.find('input')[0]
+function deconvert_input(jq, option){
+    inputNewVal_elem = jq.find('.inputNewVal')[0]
+    inputOldVal_elem = jq.find('.inputOldVal')[0]
     elem_id = jq[0].id
     orig_elem_id = elem_id.slice(5)
-    textContent = input_elem.value
+    if(option == "update"){
+        textContent = inputNewVal_elem.value
+    }else if(option == "revert"){
+        textContent = inputOldVal_elem.value
+    }else{
+        console.error("INVALID OPTION")
+        return
+    }
     $(`#${orig_elem_id}`).empty()
     $(`#${orig_elem_id}`).text(textContent)
+    return
 }
 
 function generate_ingredients_table(recipe_name, values){
@@ -277,12 +313,32 @@ function generate_ingredients_table(recipe_name, values){
         `)
         $("#i_table_tbody").append(new_tr)
     }
+    let new_tr = $(`
+    <tr class="trAddIng hide">
+        <td></td>
+        <td></td>
+        <td class="tdIngAmt" id="td_ingIngAmt_add">0</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td><button class="ui button small inverted green buttonIngAdd">Add</button></td>
+    </tr>
+    `)
+    $("#i_table_tbody").append(new_tr)
 }
 
 function reset_views_button_group(id){
     $(`#b_view_${id}`).toggleClass('hide',false)
     $(`#b_edit_${id}`).toggleClass('hide',true)
     $(`#b_duo_update_${id}`).toggleClass('hide',true)
+    $('.inputFromField')
+    .one("load", function(e){
+        deconvert_input($(this),'revert')
+    })
+    .trigger("load")
+    $('.buttonIngRemove').toggleClass('hide',true)
+    $('.trAddIng').toggleClass('hide',true)
+    $('.buttonPreDelete').toggleClass('disabled',false)
 }
 
 $().ready(function(){
@@ -319,5 +375,40 @@ function submit_search(new_search_string){
     link = `/edit_recipes?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}`;
     window.location.replace(link);
 }
+
+$(".buttonPreDelete").on( "click",
+    function(e){
+        id = $(this).data()['id']
+        $(`#b_preDel_${id}`).toggleClass('hide',true)
+        $(`#b_duo_delete_${id}`).toggleClass('hide',false)
+    }
+);
+$(".buttonCancelDelete").on( "click",
+    function(e){
+        id = $(this).data()['id']
+        $(`#b_preDel_${id}`).toggleClass('hide',false)
+        $(`#b_duo_delete_${id}`).toggleClass('hide',true)
+    }
+);
+$(".buttonConfirmDelete").on( "click",
+    function(e){
+        id = $(this).data()['id']
+        $(`#b_preDel_${id}`).toggleClass('hide',true)
+        $(`#b_duo_delete_${id}`).toggleClass('hide',true)
+        $(`#b_deleted_${id}`).toggleClass('hide',false)
+        $(`#tr_recipes_${id}`).empty()
+        new_stuff = $(`
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th><button class="ui button hide">View</button></th>
+            <th><button class="ui button secondary disabled buttonDeleted">Deleted</button></th>
+        `);
+        $(`#tr_recipes_${id}`).append(new_stuff)
+    }
+);
+
+
 </script>
 {% endblock %}

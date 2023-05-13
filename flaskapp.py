@@ -8,6 +8,7 @@ import bcrypt
 import math
 import os
 import sys
+import re
 
 ENV_FILE = ".env"
 
@@ -98,6 +99,7 @@ class ApiGetQueryTable():
     columns: list[str] = []         # column names of table
     configured: bool = False        # flag to make sure params have been appropriately set
     requery_needed: bool = True     # flag to say re-query of results needed
+    cud_event: bool = False         # flag to say a cud event occured (create update delete)
     
     def __init__(self, table_name):
         try:
@@ -108,6 +110,7 @@ class ApiGetQueryTable():
         self.columns = [x[0] for x in columns]
         self.configured = False     # Must perform setters first
         self.requery_needed = True  # Nothing queried yet
+        self.cud_event = False      # No cud event yet
         return
     
     def set_params(self, entries_per_page, page_number, search_string, sort_by, order) -> bool:
@@ -140,7 +143,8 @@ class ApiGetQueryTable():
         """Returns True or False if re-query needed. """
         if(    (self.search_string != search_string)
             or (self.sort_by != sort_by)
-            or (self.order != order)):
+            or (self.order != order)
+            or (self.cud_event is True)):
             # if any of the above params change, the query results change. Order matters
             # entries_per_page and page_number ignored as full_query_results are stored in memory
             return True
@@ -245,6 +249,10 @@ class ApiGetQueryTable():
             "results_in_page": self.results_in_page,
         }
         return results
+    
+    def set_cud_event(self):
+        self.cud_event = True
+        return
     
 def get_user_session():        
     username = session["username"] if "username" in session else "None"
@@ -386,32 +394,17 @@ def html_edit_recipes():
         return redirect("/bad_page")
     return render_template("edit_recipes.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
 
-@app.route("/craft_ingredient", methods=["GET","POST"])
+@app.route("/craft_ingredient", methods=["GET"])
 def html_craft_ingredient():
     (username, is_admin) = get_user_session()
     if is_admin != "True":
         return redirect("/")
+    if request.method != "GET":
+        return abort(404, "Not Found")
     allowed_units = list(IngredientUnits)
     allowed_units = [ x.value for x in allowed_units]
-    if request.method == "GET":
-        return render_template("craft_ingredient.html", username=username, is_admin=is_admin, allowed_units=allowed_units)
-    if request.method == "POST":
-        try:
-            name = str( request.form.get("name") )
-            unit = str( request.form.get("unit") )
-            cost = float( request.form.get("cost") )
-            assert( unit in allowed_units )
-            assert( name != "" and name is not None )
-            assert( cost is not None )
-        except:
-            return redirect(html_bad_page, username=username)
-        query = f"""
-            INSERT INTO ingredients(name, unit, cost_per_unit)
-            VALUES(%s, %s, %s)
-            ; 
-        """
-        psql.psql_psycopg2_query(query, [name, unit, cost])
-        return render_template("craft_ingredient.html", username=username, is_admin=is_admin, allowed_units=allowed_units)
+    return render_template("craft_ingredient.html", username=username, is_admin=is_admin, allowed_units=allowed_units)
+
         
 @app.route("/logout")
 def page_logout():
@@ -442,6 +435,37 @@ IngredientsTable = ApiGetQueryTable("ingredients")
 def api_get_ingredients_table():
     return api_get_query_table(IngredientsTable)
 
+@app.route("/api/craft_ingredient", methods=["POST"])
+def api_craft_ingredient():
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    (username, is_admin) = get_user_session()
+    if is_admin != "True":
+        return abort(403, "Forbidden")
+    allowed_units = list(IngredientUnits)
+    allowed_units = [ x.value for x in allowed_units]
+    if request.method == "POST":
+        try:
+            name = str( request.form.get("name") )
+            unit = str( request.form.get("unit") )
+            cost = str( request.form.get("cost") )
+            assert( unit in allowed_units )
+            assert( name != "" and name is not None )
+            assert( cost != "" and cost is not None )
+            isInt = bool(re.match(r"^[1-9]\d*$", cost))
+            isFloat = bool(re.match(r"^\d+\.?\d+$", cost))
+            assert( isInt or isFloat )
+        except:
+            return abort(403, "Bad Request - Invalid POST params")
+    query = f"""
+        INSERT INTO ingredients(name, unit, cost_per_unit)
+        VALUES(%s, %s, %s)
+        ; 
+    """
+    psql.psql_psycopg2_query(query, [name, unit, cost])
+    IngredientsTable.set_cud_event()
+    return jsonify({"message":{}, "status":200, "mimetype":'application/json', "success":True})
+
 @app.route("/api/get_recipe_ingredients", methods=["GET"])
 def api_get_recipe_ingredients():
     query = f"SELECT COUNT(*) FROM recipes;"
@@ -460,7 +484,7 @@ def api_get_recipe_ingredients():
         """
         ingredients = psql.psql_psycopg2_query(query)
     except:
-        return abort(400, "Invalid GET parameters")
+        return abort(400, "Bad Request - Invalid GET parameters")
     return jsonify({"message":ingredients, "status":200, "mimetype":'application/json', "success":True})
 
 if __name__ == "__main__":
