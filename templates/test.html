@@ -1,81 +1,95 @@
-{% extends "base.html" %}
+{% extends "base.html" %} {% block main_content%}
+<div class="wrapper">
+  <button class="ui button inverted buttonTest">Test</button>
 
-{% block main_content%}
-<button class="ui button inverted buttonTest" >Test</button>
+  <button class="ui button inverted green buttonIngAdd">Add</button>
 
-<form method="GET">
-  <select class="ui search dropdown inverted" name="recipe_id" onchange="this.form.submit()">
-    <option value="None">Select Recipe:</option>
-    <option value="None">Select Recipe:</option>
-    <option value="None">Select Recipe:</option>
-  </select>
-</form>
 
-<div class="ui modal">
-  <div class="header">Header</div>
-  <div class="content">
-    <p></p>
-  </div>
-  <div class="actions">
-    <div class="ui approve button">Approve</div>
-    <div class="ui button">Neutral</div>
-    <div class="ui cancel button">Cancel</div>
+
+
+  <div class="ui small inverted modal">
+    <div class="header">Search for ingredient</div>
+    <div class="content">
+      <div class="ui fluid category search">
+        <div class="ui icon input">
+          <input class="prompt" type="text" placeholder="Eg. Sugar...">
+          <i class="search icon"></i>
+        </div>
+        <div class="results"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <div class="ui approve button">Add Ingredient</div>
+      <div class="ui cancel button">Cancel</div>
+    </div>
   </div>
 </div>
 
-{% endblock %}
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-$.fn.api.settings.api = {
-    'get recipe list' : '/api/get_recipe_table?recipe_id={id}',
-    'get recipe ingredients' : '/api/get_recipe_ingredients?recipe_id={id}',
-    'test action' : '/api/get_recipe_table',
-};
-var recipe_inglist = []
-$('.buttonTest')
-  .api({
-    action: 'test action',
-    onResponse: function(response) {
+  $(".buttonIngAdd").on("click", function (e){
+    $('.ui.modal')
+      .modal({
+        inverted: false,
+        blurring: true,
+        dimmerSettings: {
+          variation: 'very light blurring',
+        },
+      })
+      .modal('show');
+  });
+
+
+  $(".ui.search")
+    .search({
+      apiSettings: {
+        url: '/api/get_ingredients_table?entries_per_page=10&page_number=1&sort_by=id&order=asc&search_string={query}',
+      },
+      searchDelay: 500,
+    })
+
+  $.fn.api.settings.api = {
+    "get recipe list": "/api/get_recipe_table?recipe_id={id}",
+    "get recipe ingredients": "/api/get_recipe_ingredients?recipe_id={id}",
+    "test action": "/api/get_recipe_table",
+  };
+
+  var recipe_inglist = [];
+  $(".buttonTest").api({
+    action: "test action",
+    onResponse: function (response) {
       // make some adjustments to response
-      console.log("asdf onResponse")
+      console.log("asdf onResponse");
       return response;
     },
-    successTest: function(response) {
+    successTest: function (response) {
       // test whether a JSON response is valid
-      console.log("asdf successTest")
+      console.log("asdf successTest");
       return response.success || false;
     },
-    onComplete: function(response, element, xhr) {
-        console.log("asdf onComplete")
-        console.log(response)
+    onComplete: function (response, element, xhr) {
+      console.log("asdf onComplete");
+      console.log(response);
       // always called after XHR complete
     },
-    onSuccess: function(response, element, xhr) {
+    onSuccess: function (response, element, xhr) {
       // valid response and response.success = true
-      console.log("asdf onSuccess")
+      console.log("asdf onSuccess");
     },
-    onFailure: function(response, element, xhr) {
+    onFailure: function (response, element, xhr) {
       // request failed, or valid response but response.success = false
-      console.log("asdf onFailure")
+      console.log("asdf onFailure");
     },
-    onError: function(errorMessage, element, xhr) {
+    onError: function (errorMessage, element, xhr) {
       // invalid response
-      console.log("asdf onError")
+      console.log("asdf onError");
     },
-    onAbort: function(errorMessage, element, xhr) {
-        console.log("asdf onAbort")
+    onAbort: function (errorMessage, element, xhr) {
+      console.log("asdf onAbort");
       // navigated to a new page, CORS issue, or user canceled request
-    }
-  })
+    },
+  });
 
-;
-
-$('.mini.inverted.modal')
-  .modal('show')
-;
-$('.ui.dropdown')
-  .dropdown()
-;
-
+  $(".ui.dropdown").dropdown();
 </script>
 {% endblock %}

@@ -42,7 +42,8 @@ TABLE_RECIPES = "recipes"
 TABLE_INGREDIENTS = "ingredients"
 TABLE_PAIRS = "recipe_ingredient_pairs"
 
-HTML_TABLE_DISPLAY_LIMIT = 5
+DEFAULT_TABLE_DISPLAY_LIMIT = 5
+DEFAULT_MAX_RESULTS = 999 
 
 src_path = os.path.abspath( os.path.join( HERE_ABSPATH, SRC_PATH ) )
 class IngredientUnits(Enum):
@@ -71,7 +72,7 @@ print("Sanity psqlshell Query")
 print(psql.psql_shell_query(query))
 print()
 # ===================================================================================
-#  Declarations
+#  Declarations - Classes
 # ===================================================================================
 class ApiGetQueryTable():
     """ Usage: Init class(table_name), use .set_params(<params>), then use .results()"""
@@ -82,11 +83,12 @@ class ApiGetQueryTable():
     
     # params for GET query
     table_name: str = ""
-    entries_per_page: int = 0
+    entries_per_page: int = 0   # If set to 0, no limit
     page_number: int = 0
     search_string: str = ""
     sort_by: str = 0
     order: str = 0
+    max_results: str = 0        # If set to 0, no limit
     
     # params of GET query
     total_num_of_results: int = 0
@@ -113,23 +115,25 @@ class ApiGetQueryTable():
         self.cud_event = False      # No cud event yet
         return
     
-    def set_params(self, entries_per_page, page_number, search_string, sort_by, order) -> bool:
+    def set_params(self, entries_per_page, page_number, search_string, sort_by, order, max_results) -> bool:
         """Returns True if params set okay, otherwise returns False. Allocates flags"""
         try:
-            int(entries_per_page)
-            int(page_number)
-            str(search_string)
-            str(sort_by)
-            str(order)
+            entries_per_page    = int(entries_per_page)
+            page_number         = int(page_number)
+            search_string       = str(search_string)
+            sort_by             = str(sort_by)
+            order               = str(order)
+            max_results         = int(max_results)
             order=str(order).upper()
-            assert(entries_per_page >= 1)
+            assert(entries_per_page >= 0)
             assert(page_number >= 1)
             assert(sort_by in [*self.columns,""])
             assert(order in ["ASC","DESC",""])
+            assert(max_results >= 0)
         except:
             return False
         # flags
-        self.requery_needed = self.check_requery_needed(search_string, sort_by, order)
+        self.requery_needed = self.check_requery_needed(search_string, sort_by, order, max_results)
         self.configured = True
         # set values
         self.entries_per_page = entries_per_page
@@ -137,13 +141,15 @@ class ApiGetQueryTable():
         self.search_string = search_string
         self.sort_by = sort_by
         self.order = order
+        self.max_results = max_results
         return True
     
-    def check_requery_needed(self, search_string, sort_by, order):
+    def check_requery_needed(self, search_string, sort_by, order, max_results):
         """Returns True or False if re-query needed. """
         if(    (self.search_string != search_string)
             or (self.sort_by != sort_by)
             or (self.order != order)
+            or (self.max_results != max_results)
             or (self.cud_event is True)):
             # if any of the above params change, the query results change. Order matters
             # entries_per_page and page_number ignored as full_query_results are stored in memory
@@ -159,6 +165,12 @@ class ApiGetQueryTable():
                 query += f" {self.order}"
         return query
         
+    def add_limit_stuff(self, query_string: str):
+        query = query_string
+        if self.max_results == 0:
+            query += f" LIMIT {self.max_results}"
+        return query
+        
     def perform_query(self):
         """Checks for requery_needed flag. If True, performs the query and stores the result in class variable"""
         if not self.configured:
@@ -170,11 +182,11 @@ class ApiGetQueryTable():
             query = f"SELECT * FROM {self.table_name}"
             query = self.add_sort_stuff(query)
             query += ";"
-            self.full_query_result = psql.psql_psycopg2_query(query)
+            self.full_query_result = [dict(zip(self.columns, x)) for x in psql.psql_psycopg2_query(query)]
             return
         
         # otherwise, With search string
-        search_components = segregate_search_string(self.search_string.lower())
+        search_components = self.segregate_search_string(self.search_string.lower())
         exact_search_query = (f"SELECT * FROM {self.table_name}" 
             + f" WHERE LOWER(name) LIKE '%{self.search_string.lower()}%'")
         
@@ -182,7 +194,7 @@ class ApiGetQueryTable():
         if len(search_components) == 1:
             query = self.add_sort_stuff(exact_search_query)
             query += ";"
-            self.full_query_result = psql.psql_psycopg2_query(query)
+            self.full_query_result = [dict(zip(self.columns, x)) for x in psql.psql_psycopg2_query(query)]
             return
         # otherwise more bits:
         and_search_query = (f"SELECT * FROM {self.table_name} WHERE"
@@ -214,18 +226,24 @@ class ApiGetQueryTable():
             + self.add_sort_stuff(" SELECT * FROM rem_and")
             + " UNION ALL"
             + self.add_sort_stuff(" SELECT * FROM rem_or")
+            + self.add_limit_stuff("")
             + ";"
         )
-        self.full_query_result = psql.psql_psycopg2_query(query)
+        self.full_query_result = [dict(zip(self.columns, x)) for x in psql.psql_psycopg2_query(query)]
         return
     
     def results(self):
         self.perform_query()
         # params of GET query
         self.total_num_of_results: int = len(self.full_query_result)
-        self.total_num_of_pages: int = math.ceil(self.total_num_of_results / self.entries_per_page)
-        self.starting_entry_index: int = (self.page_number - 1) * self.entries_per_page
-        self.ending_entry_num: int = self.starting_entry_index + self.entries_per_page
+        if self.entries_per_page == 0:
+            entries_per_page = self.total_num_of_results
+        else:
+            entries_per_page = self.entries_per_page
+            # not using self.entries_per_page to preserve the '0' setting
+        self.total_num_of_pages: int = math.ceil(self.total_num_of_results / entries_per_page)
+        self.starting_entry_index: int = (self.page_number - 1) * entries_per_page
+        self.ending_entry_num: int = self.starting_entry_index + entries_per_page
         if self.ending_entry_num > self.total_num_of_results:
             self.ending_entry_num = self.total_num_of_results
         if self.starting_entry_index >= self.ending_entry_num:
@@ -241,6 +259,7 @@ class ApiGetQueryTable():
             "search_string": self.search_string,
             "sort_by": self.sort_by,
             "order": self.order,
+            "max_results": self.max_results,
             # params of GET query
             "total_num_of_results": self.total_num_of_results,
             "total_num_of_pages": self.total_num_of_pages,
@@ -250,82 +269,101 @@ class ApiGetQueryTable():
         }
         return results
     
+    def get_query_table(self):
+        table_name = self.table_name
+        columns = psql.obtain_table_fields(table_name)
+        columns = [x[0] for x in columns]
+        if request.method == "GET":
+            entries_per_page    = request.args.get('entries_per_page')
+            page_number         = request.args.get('page_number')
+            search_string       = request.args.get('search_string')
+            sort_by             = request.args.get('sort_by')
+            order               = request.args.get('order')
+            max_results         = request.args.get('max_results')
+            entries_per_page    = entries_per_page  if entries_per_page     is not None else DEFAULT_TABLE_DISPLAY_LIMIT
+            page_number         = page_number       if page_number          is not None else 1
+            search_string       = search_string     if search_string        is not None else ""
+            sort_by             = sort_by           if sort_by              is not None else ""
+            order               = order             if order                is not None else ""
+            max_results         = max_results       if max_results          is not None else DEFAULT_MAX_RESULTS
+        if(not self.set_params(entries_per_page, page_number, search_string, sort_by, order, max_results)):
+            return ({"success": False, "payload": None})
+        else:
+            results_table = self.results()
+        if results_table is None:
+            # Bad query due to bad or invalid params. Respond with the same bad params in GET request
+            results_table = {
+                # params for GET query
+                "table_name": table_name,
+                "entries_per_page": entries_per_page,
+                "page_number": page_number,
+                "search_string": search_string,
+                "sort_by": sort_by,
+                "order": order,
+                "max_results" : max_results,
+                # params of GET query
+                "total_num_of_results": 0,
+                "total_num_of_pages": 0,
+                "starting_entry_index": 0,
+                "ending_entry_num": 0,
+                "results_in_page": 0,
+            }
+            return ({"success": False, "payload": results_table})
+        return ({"success": True, "payload": results_table})
+    
     def set_cud_event(self):
         self.cud_event = True
         return
     
+    @staticmethod
+    def segregate_search_string(search_string:str):
+        """Converts all symbols in string to spaces then breaks it into bits"""
+        # not gonna implement a sanitiser for %20 etc. Gonna just use + for now
+        alphanums = "qwertyuiopasdfghjklzxcvbnm1234567890"
+        sanitised = ""
+        for x in search_string:
+            sanitised += (x if x in alphanums else " ")
+        components = sanitised.split()
+        return components
+    
+# ===================================================================================
+#  Declarations - Methods
+# ===================================================================================
+
 def get_user_session():        
     username = session["username"] if "username" in session else "None"
     is_admin = session["is_admin"] if "is_admin" in session else False
     is_admin = "True" if is_admin else "False"
     return (username, is_admin)
 
-def segregate_search_string(search_string:str):
-    """Converts all symbols in string to spaces then breaks it into bits"""
-    # not gonna implement a sanitiser for %20 etc. Gonna just use + for now
-    alphanums = "qwertyuiopasdfghjklzxcvbnm1234567890"
-    sanitised = ""
-    for x in search_string:
-        sanitised += (x if x in alphanums else " ")
-    components = sanitised.split()
-    return components
-
-def get_query_table(QueryTable: ApiGetQueryTable):
-    table_name = QueryTable.table_name
-    columns = psql.obtain_table_fields(table_name)
-    columns = [x[0] for x in columns]
-    if request.method == "GET":
-        entries_per_page    = request.args.get('entries_per_page')
-        page_number         = request.args.get('page_number')
-        search_string       = request.args.get('search_string')
-        sort_by             = request.args.get('sort_by')
-        order               = request.args.get('order')
-        entries_per_page    = entries_per_page  if entries_per_page     is not None else HTML_TABLE_DISPLAY_LIMIT
-        page_number         = page_number       if page_number          is not None else 1
-        search_string       = search_string     if search_string        is not None else ""
-        sort_by             = sort_by           if sort_by              is not None else ""
-        order               = order             if order                is not None else ""
-    try:
-        entries_per_page    = int(entries_per_page)
-        page_number         = int(page_number)
-        search_string       = str(search_string)
-        sort_by             = str(sort_by)
-        order               = str(order).upper()
-        assert(entries_per_page >= 1)
-        assert(page_number >= 1)
-        assert(sort_by in [*columns,""])
-        assert(order in ["ASC","DESC",""])
-    except:
-        return ({"success": False, "payload": None})
-    if(QueryTable.set_params(entries_per_page, page_number, search_string, sort_by, order)):
-        results_table = QueryTable.results()
-    if results_table is None:
-        results_table = {
-            # params for GET query
-            "table_name": table_name,
-            "entries_per_page": entries_per_page,
-            "page_number": page_number,
-            "search_string": search_string,
-            "sort_by": sort_by,
-            "order": order,
-            # params of GET query
-            "total_num_of_results": 0,
-            "total_num_of_pages": 0,
-            "starting_entry_index": 0,
-            "ending_entry_num": 0,
-            "results_in_page": 0,
-        }
-        return ({"success": False, "payload": results_table})
-    return ({"success": True, "payload": results_table})
-    
 def api_get_query_table(QueryTable: ApiGetQueryTable):
-    results = get_query_table(QueryTable)
+    results = QueryTable.get_query_table()
     if results["success"] is not True and results["payload"] is None:
         return jsonify(error = "Invalid Get Parameters", status = 400, success = False)
-    return jsonify(message = results["payload"], status = 200, mimetype = 'application/json', success = True)
-    
-def page_get_query_table(QueryTable: ApiGetQueryTable):
-    results = get_query_table(QueryTable)
+    return jsonify(results = results["payload"], status = 200, mimetype = 'application/json', success = True)
+
+def api_get_query_table_mini(QueryTable: ApiGetQueryTable):
+    """Modified version for html search bars"""
+    # https://fomantic-ui.com/modules/search.html#/usage
+    results = QueryTable.get_query_table()
+    if results["success"] is not True and results["payload"] is None:
+        return jsonify(error = "Invalid Get Parameters", status = 400, success = False)
+    payload = {
+        "results"   : [],
+        "action"    : {},
+        "mimetype"  : "aplication/json",
+        "status"    : 200,
+        "success"   : True,
+    }
+    for x in results:
+        payload["results"].append({
+            "title" : x["name"],
+            "id" : x["id"],
+        })
+    return jsonify(payload)
+
+def noapi_get_query_table(QueryTable: ApiGetQueryTable):
+    results = QueryTable.get_query_table()
     return results["payload"]
 
 def api_get_item_by_id(table_name:str):
@@ -336,26 +374,76 @@ def api_get_item_by_id(table_name:str):
         id = int(id)
         assert(id > 0)
     except:
-        return jsonify(message = {}, status = 400, mimetype = 'application/json', success = False)
+        return jsonify(results = {}, status = 400, mimetype = 'application/json', success = False)
     try:
         query = f"SELECT COUNT(*) FROM {table_name};"
         total_num_of_items = psql.psql_psycopg2_query(query)[0][0]
         assert(id <= total_num_of_items)
     except:
-        return jsonify(message = {}, status = 400, mimetype = 'application/json', success = False)
+        return jsonify(results = {}, status = 400, mimetype = 'application/json', success = False)
     query = f"SELECT * FROM {table_name} WHERE id={id};"
     item = psql.psql_psycopg2_query(query)
     if len(item) == 0:
-        return jsonify(message = None, status = 204, mimetype = 'application/json', success = True)
-    return jsonify(message = item, status = 200, mimetype = 'application/json', success = True)
+        return jsonify(results = None, status = 204, mimetype = 'application/json', success = True)
+    return jsonify(results = item, status = 200, mimetype = 'application/json', success = True)
 
+def api_get_recipe_ingredients():
+    if request.method == "GET":
+        recipe_id = request.args.get("recipe_id")
+    try:
+        recipe_id = int(recipe_id)
+        assert( recipe_id > 0 )
+    except:
+        return jsonify(results = {}, status = 400, mimetype = 'application/json', success = False)
+    try:
+        query = f"SELECT COUNT(*) FROM recipes;"
+        total_num_of_recipes = psql.psql_psycopg2_query(query)[0][0]
+        assert( recipe_id <= total_num_of_recipes)
+    except:
+        return jsonify(results = {}, status = 400, mimetype = 'application/json', success = False)
+    query = f"""SELECT i.id, i.name, i.unit, p.amount_of_units, i.cost_per_unit FROM 
+    (recipe_ingredient_pairs as p INNER JOIN ingredients as i ON p.ingredient_id = i.id)
+    WHERE p.recipe_id = {recipe_id}
+    ;
+    """
+    columns = ["id", "name", "unit", "amount_of_units", "cost_per_unit"]
+    ingredients = [dict(zip(columns, x)) for x in psql.psql_psycopg2_query(query)]
+    if len(ingredients) == 0:
+        return jsonify(results = None, status = 204, mimetype = 'application/json', success = True)    
+    return jsonify(results = ingredients, status = 200, mimetype = 'application/json', success = True)
+
+def api_craft_ingredient():
+    allowed_units = list(IngredientUnits)
+    allowed_units = [ x.value for x in allowed_units]
+    if request.method == "POST":
+        try:
+            name = str( request.form.get("name") )
+            unit = str( request.form.get("unit") )
+            cost = str( request.form.get("cost") )
+            assert( unit in allowed_units )
+            assert( name != "" and name is not None )
+            assert( cost != "" and cost is not None )
+            isInt = bool(re.match(r"^[1-9]\d*$", cost))
+            isFloat = bool(re.match(r"^\d+\.?\d+$", cost))
+            assert( isInt or isFloat )
+        except:
+            return abort(403, "Bad Request - Invalid POST params")
+    query = f"""
+        INSERT INTO ingredients(name, unit, cost_per_unit)
+        VALUES(%s, %s, %s)
+        ; 
+    """
+    psql.psql_psycopg2_query(query, [name, unit, cost])
+    IngredientsTable.set_cud_event()
+    return jsonify(results = {}, status = 200, mimetype = 'application/json', success = True)
 # ===================================================================================
 #  Routes
 # ===================================================================================
+
 @app.route("/", methods=["GET","POST"])
 def html_home():
     (username, is_admin) = get_user_session()
-    recipe_table = page_get_query_table(RecipeTable)
+    recipe_table = noapi_get_query_table(RecipeTable)
     if recipe_table is None:
         return redirect("/bad_page")
     return render_template("home.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
@@ -415,7 +503,7 @@ def html_edit_recipes():
     (username, is_admin) = get_user_session()
     if is_admin != "True":
         return redirect("/")
-    recipe_table = page_get_query_table(RecipeTable)
+    recipe_table = noapi_get_query_table(RecipeTable)
     if recipe_table is None:
         return redirect("/bad_page")
     return render_template("edit_recipes.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
@@ -452,78 +540,38 @@ def html_test_page():
 
 RecipeTable = ApiGetQueryTable("recipes")
 @app.route("/api/get_recipes_table", methods=["GET"])
-def api_get_recipes_table():
+def apipage_get_recipes_table():
     return api_get_query_table(RecipeTable)
     
 IngredientsTable = ApiGetQueryTable("ingredients")
 @app.route("/api/get_ingredients_table", methods=["GET"])
-def api_get_ingredients_table():
+def apipage_get_ingredients_table():
     return api_get_query_table(IngredientsTable)
 
+@app.route("/api/search_ingredients_mini")
+def apipage_search_ingredients_mini():
+    return api_get_query_table_mini(IngredientsTable)
 
 @app.route("/api/get_ingredient_by_id", methods=["GET"])
-def api_get_ingredient_by_id():
+def apipage_get_ingredient_by_id():
     return api_get_item_by_id("ingredients")
 
 @app.route("/api/get_recipe_by_id", methods=["GET"])
-def api_get_recipe_by_id():
+def apipage_get_recipe_by_id():
     return api_get_item_by_id("recipe")
 
 @app.route("/api/get_recipe_ingredients", methods=["GET"])
-def api_get_recipe_ingredients():
-    if request.method == "GET":
-        recipe_id = request.args.get("recipe_id")
-    try:
-        recipe_id = int(recipe_id)
-        assert( recipe_id >= 0 )
-    except:
-        return jsonify(message = {}, status = 400, mimetype = 'application/json', success = False)
-    try:
-        query = f"SELECT COUNT(*) FROM recipes;"
-        total_num_of_recipes = psql.psql_psycopg2_query(query)[0][0]
-        assert( recipe_id <= total_num_of_recipes)
-    except:
-        return jsonify(message = {}, status = 400, mimetype = 'application/json', success = False)
-    query = f"""SELECT i.id, i.name, i.unit, p.amount_of_units, i.cost_per_unit FROM 
-    (recipe_ingredient_pairs as p INNER JOIN ingredients as i ON p.ingredient_id = i.id)
-    WHERE p.recipe_id = {recipe_id}
-    ;
-    """
-    ingredients = psql.psql_psycopg2_query(query)
-    if len(ingredients) == 0:
-        return jsonify(message = None, status = 204, mimetype = 'application/json', success = True)    
-    return jsonify(message = ingredients, status = 200, mimetype = 'application/json', success = True)
+def apipage_get_recipe_ingredients():
+    return api_get_recipe_ingredients()
 
 @app.route("/api/craft_ingredient", methods=["POST"])
-def api_craft_ingredient():
+def apipage_craft_ingredient():
     if request.method != "POST":
         return abort(404, "Not Found")
     (username, is_admin) = get_user_session()
     if is_admin != "True":
         return abort(403, "Forbidden")
-    allowed_units = list(IngredientUnits)
-    allowed_units = [ x.value for x in allowed_units]
-    if request.method == "POST":
-        try:
-            name = str( request.form.get("name") )
-            unit = str( request.form.get("unit") )
-            cost = str( request.form.get("cost") )
-            assert( unit in allowed_units )
-            assert( name != "" and name is not None )
-            assert( cost != "" and cost is not None )
-            isInt = bool(re.match(r"^[1-9]\d*$", cost))
-            isFloat = bool(re.match(r"^\d+\.?\d+$", cost))
-            assert( isInt or isFloat )
-        except:
-            return abort(403, "Bad Request - Invalid POST params")
-    query = f"""
-        INSERT INTO ingredients(name, unit, cost_per_unit)
-        VALUES(%s, %s, %s)
-        ; 
-    """
-    psql.psql_psycopg2_query(query, [name, unit, cost])
-    IngredientsTable.set_cud_event()
-    return jsonify(message = {}, status = 200, mimetype = 'application/json', success = True)
+    return api_craft_ingredient()
 
 if __name__ == "__main__":
     app.run(debug=True)

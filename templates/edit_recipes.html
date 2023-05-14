@@ -73,12 +73,12 @@
         </tr></thead>
         <tbody>
             {% for li in ns.results_in_page %}
-                {% set id = li[0] | int %}
+                {% set id = li["id"] | int %}
                 <tr id="tr_recipes_{{id}}">
                     <th id="th_id_{{id}}">{{id}}</th>
-                    <th id="th_name_{{id}}">{{li[1]}}</th>
-                    <th id="th_desc_{{id}}">{{li[2]}}</th>
-                    <th id="th_tags_{{id}}">{{li[3]}}</th>
+                    <th id="th_name_{{id}}">{{li["name"]}}</th>
+                    <th id="th_desc_{{id}}">{{li["description"]}}</th>
+                    <th id="th_tags_{{id}}">{{li["tags"]}}</th>
                     <th>
                         <button class="ui button inverted basic teal buttonView" id="b_view_{{id}}" data-id={{id}}>View</button>
                         <button class="ui button inverted olive buttonEdit hide" id="b_edit_{{id}}" data-id={{id}}>Edit</button>
@@ -195,7 +195,7 @@ $('.buttonView')
         },
         onSuccess: function(response, element, xhr) {
             console.log(`response success: ${response.success}`)
-            view_button_actions($(this), response.message)
+            view_button_actions($(this), response.results)
         },
         onFailure: function(response, element, xhr) {
             // request failed, or valid response but response.success = false
@@ -301,15 +301,15 @@ function generate_ingredients_table(recipe_name, values){
         return
     }
     for(let i of values){
-        let i_cost = parseFloat(i[3]) * parseFloat(i[4])
-        let ing_id = i[0]
+        let i_cost = parseFloat(i["amount_of_units"]) * parseFloat(i["cost_per_unit"])
+        let ing_id = i["id"]
         let new_tr = $(`
         <tr>
-            <td>${i[0]}</td>
-            <td>${i[1]}</td>
-            <td class="tdIngAmt" id="td_ing_amt_${ing_id}">${i[3]}</td>
-            <td>${i[2]}</td>
-            <td>$ ${i[4].toFixed(6)}</td>
+            <td>${i["id"]}</td>
+            <td>${i["name"]}</td>
+            <td class="tdIngAmt" id="td_ing_amt_${ing_id}">${i["amount_of_units"]}</td>
+            <td>${i["unit"]}</td>
+            <td>$ ${i["cost_per_unit"].toFixed(6)}</td>
             <td>$ ${i_cost.toFixed(2)}</td>
             <td><button class="ui button small inverted red buttonIngRemove hide" id="b_ingRem_{{id}}" data-id={{id}}>Remove</button></td>
         </tr>

@@ -133,7 +133,7 @@ function check_duplicate_name(){
     $.ajax({
         url : `/api/get_ingredients_table?entries_per_page=9999&search_string=${name}`,
         success : function(response, element, xhr) {
-            search_results = response.message
+            search_results = response.results
             console.log(search_results)
         }
     })

@@ -6,6 +6,7 @@
     search_string=recipe_table["search_string"],
     sort_by=recipe_table["sort_by"],
     order=recipe_table["order"],
+    max_results=recipe_table["max_results"],
     table_name=recipe_table["table_name"],
     starting_entry_index=recipe_table["starting_entry_index"],
     ending_entry_num=recipe_table["ending_entry_num"],
@@ -71,12 +72,12 @@
         </tr></thead>
         <tbody>
             {% for li in ns.results_in_page %}
-                {% set id = li[0] | int %}
+                {% set id = li["id"] | int %}
                 <tr>
                     <th>{{id}}</th>
-                    <th id="th_name_{{id}}">{{li[1]}}</th>
-                    <th>{{li[2]}}</th>
-                    <th>{{li[3]}}</th>
+                    <th id="th_name_{{id}}">{{li["name"]}}</th>
+                    <th>{{li["description"]}}</th>
+                    <th>{{li["tags"]}}</th>
                     <th>
                         <button class="ui button inverted basic teal buttonSelect" id="b_select_{{id}}" data-id={{id}}>Select</button>
                         <button class="ui button inverted olive disabled buttonSelected hide" id="b_selected_{{id}}" data-id={{id}}>Selected</button>
@@ -202,6 +203,7 @@ var entries_per_page = {{ns.entries_per_page}};
 var search_string = "{{ ns.search_string }}";
 var sort_by = "{{ns.sort_by}}";
 var order = "{{ns.order}}";
+var max_results = {{ns.max_results}};
 
 var recipe_inglist = [];
 var previous_id_clicked = 0
@@ -214,7 +216,7 @@ $.fn.api.settings.api = {
 };
 
 function submit_search(new_search_string){
-    link = `/?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}`;
+    link = `/?entries_per_page=${entries_per_page}&page_number=${1}&search_string=${new_search_string}&sort_by=${sort_by}&order=${order}&max_results=${max_results}`;
     window.location.replace(link);
 }
 
@@ -245,14 +247,14 @@ function generate_ingredients_table(recipe_name, values){
         return
     }
     for(let i of values){
-        let i_cost = parseFloat(i[3]) * parseFloat(i[4])
+        let i_cost = parseFloat(i["amount_of_units"]) * parseFloat(i["cost_per_unit"])
         let new_tr = $(`
             <tr>
-                <td>${i[0]}</td>
-                <td>${i[1]}</td>
-                <td>${i[3]}</td>
-                <td>${i[2]}</td>
-                <td>$ ${i[4].toFixed(6)}</td>
+                <td>${i["id"]}</td>
+                <td>${i["name"]}</td>
+                <td>${i["amount_of_units"]}</td>
+                <td>${i["unit"]}</td>
+                <td>$ ${i["cost_per_unit"].toFixed(6)}</td>
                 <td>$ ${i_cost.toFixed(2)}</td>
             </tr>
         `)
@@ -300,7 +302,7 @@ $(".tablePage").on( "click",
         if(next_pagenum == {{ns.page_number}}){
             return;
         }
-        link = `/?entries_per_page=${entries_per_page}&page_number=${next_pagenum}&search_string=${search_string}&sort_by=${sort_by}&order=${order}`;
+        link = `/?entries_per_page=${entries_per_page}&page_number=${next_pagenum}&search_string=${search_string}&sort_by=${sort_by}&order=${order}&max_results=${max_results}`;
         $(this).attr("href", link);
     }
 );
@@ -326,7 +328,7 @@ $('.buttonSelect')
         },
         onSuccess: function(response, element, xhr) {
             console.log(`response success: ${response.success}`)
-            view_button_actions($(this), response.message);
+            view_button_actions($(this), response.results);
         },
         onFailure: function(response, element, xhr) {
             // request failed, or valid response but response.success = false
