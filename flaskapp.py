@@ -508,6 +508,23 @@ def api_update_recipe():
     RecipeTable.set_cud_event()
     return jsonify(results = {}, status = 200, mimetype = 'application/json', success = True)
 
+def api_delete_recipe():
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    try:
+        recipe_id = str( request.form.get("recipe_id") )
+        assert( bool(re.match(r"^[1-9]\d*$", recipe_id)) )
+        recipe_id = int(recipe_id)
+        assert( recipe_id > 0)
+    except:
+        return abort(403, "Bad Request - Invalid POST params")
+    query = f"DELETE FROM recipes WHERE id={recipe_id};"
+    psql.psql_psycopg2_query(query)
+    query = f"DELETE FROM recipe_ingredient_pairs WHERE recipe_id={recipe_id};"
+    psql.psql_psycopg2_query(query)
+    RecipeTable.set_cud_event()
+    return jsonify(results = {}, status = 200, mimetype = 'application/json', success = True)
+
 def api_update_recipe_ingredients():
     """ Takes in recipe_id and a list of kv ingredients"""
     if request.method != "POST":
@@ -546,6 +563,7 @@ def api_update_recipe_ingredients():
             ;
         """
         psql.psql_psycopg2_query(query, [recipe_id, ingredient_id, amount_of_units])
+    RecipeTable.set_cud_event()
     return jsonify(results = {}, status = 200, mimetype = 'application/json', success = True)
 # ===================================================================================
 #  Routes
@@ -705,6 +723,15 @@ def apipage_update_recipe():
     if is_admin != "True":
         return abort(403, "Forbidden")
     return api_update_recipe()
+
+@app.route("/api/delete_recipe", methods=["POST"])
+def apipage_delete_recipe():
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    (username, is_admin) = get_user_session()
+    if is_admin != "True":
+        return abort(403, "Forbidden")
+    return api_delete_recipe()
 
 @app.route("/api/update_recipe_ingredients", methods=["POST"])
 def apipage_update_recipe_ingredients():

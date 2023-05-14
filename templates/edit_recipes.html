@@ -588,6 +588,7 @@ $(".buttonConfirmDelete").on( "click",
             <th><button class="ui button secondary disabled buttonDeleted">Deleted</button></th>
         `);
         $(`#tr_recipes_${id}`).append(new_stuff)
+        $.post("/api/delete_recipe", {recipe_id: id})
     }
 );
 
