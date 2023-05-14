@@ -1,7 +1,8 @@
 {% extends "base.html" %} {% block main_content%}
 <div class="wrapper">
   <button class="ui button inverted buttonTest">Test</button>
-
+  <button class="ui button inverted buttonTest2">Test2</button>
+  <input type="number" class="inputNewVal" value="0">
   <button class="ui button inverted green buttonIngAdd">Add</button>
 
 
@@ -12,14 +13,14 @@
     <div class="content">
       <div class="ui fluid category search">
         <div class="ui icon input">
-          <input class="prompt" type="text" placeholder="Eg. Sugar...">
+          <input class="prompt" type="text" placeholder="type something...">
           <i class="search icon"></i>
         </div>
-        <div class="results"></div>
+        <div class="results searchResults"></div>
       </div>
     </div>
     <div class="actions">
-      <div class="ui approve button">Add Ingredient</div>
+      <div class="ui approve green button buttonIngAddConfirm">Add Ingredient</div>
       <div class="ui cancel button">Cancel</div>
     </div>
   </div>
@@ -27,6 +28,8 @@
 
 {% endblock %} {% block scripts %}
 <script>
+  var selected_ing_id_to_add = null
+
   $(".buttonIngAdd").on("click", function (e){
     $('.ui.modal')
       .modal({
@@ -34,6 +37,15 @@
         blurring: true,
         dimmerSettings: {
           variation: 'very light blurring',
+        },
+        onVisible: function(){
+          selected_ing_id_to_add = null
+        },
+        onHide: function(){
+          $('.ui.search').search('set value', '')
+        },
+        onApprove: function(){
+          console.log(selected_ing_id_to_add)
         },
       })
       .modal('show');
@@ -46,7 +58,16 @@
         url: 'api/search_ingredients_mini?search_string={query}',
       },
       searchDelay: 500,
+      onSelect: function(result,response){
+        selected_ing_id_to_add = result["id"]
+      },
+      cache: false,
+      selectFirstResult: false,
+      preserveHTML: false,
     })
+    
+    
+
 
   $.fn.api.settings.api = {
     "get recipe list": "/api/get_recipe_table?recipe_id={id}",
@@ -54,6 +75,13 @@
     "test action": "/api/get_recipe_table",
   };
 
+  $(".buttonTest2").on("click",function(){
+    $.get("api/get_ingredient_by_id?id=1", function(response, status){
+      console.log(response)
+      console.log(status)
+    })
+  })
+    
   var recipe_inglist = [];
   $(".buttonTest").api({
     action: "test action",

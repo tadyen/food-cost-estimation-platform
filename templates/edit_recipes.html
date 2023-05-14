@@ -27,6 +27,9 @@
         color: #FFFFFF00 !important;
         border-style: none none solid none !important;
     }
+    .toast-container{
+        margin: 5vh 0 0 0;
+    }
 </style>
 {% endblock %}
 
@@ -35,22 +38,22 @@
 {% endblock %}
 
 {% block main_content%}
-<div class="wrapper">
-<div class="ui inverted segment">
-    <div class="ui form inverted">
-        <div class="inline fields">
-            <div class="fourteen wide field">
-                <input type="text" id="input_search" placeholder="Search for a recipe eg. Cake">
-            </div>
-            <div class="two wide field">
-                <div class="ui submit button buttonSearchSubmit">
-                    <i class="search icon"></i>
-                    Search
+    <div class="wrapper">
+    <div class="ui inverted segment">
+        <div class="ui form inverted">
+            <div class="inline fields">
+                <div class="fourteen wide field">
+                    <input type="text" id="input_search" placeholder="Search for a recipe eg. Cake">
+                </div>
+                <div class="two wide field">
+                    <div class="ui submit button buttonSearchSubmit">
+                        <i class="search icon"></i>
+                        Search
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 {% if ns.total_num_of_results == 0 %}
     <div class="ui icon message">
         <i class="box open icon"></i>
@@ -168,6 +171,25 @@
         </tfoot>
     </table>
 {% endif %}
+    <div class="ui small inverted modal">
+        <div class="header">Search for ingredient</div>
+        <div class="content">
+            <div class="ui category search">
+                <div class="ui icon input">
+                    <input class="prompt" type="text" placeholder="type something...">
+                    <i class="search icon"></i>
+                </div>
+                <div class="results searchResults"></div>
+                <div class="ui left pointing red basic label hide ingAlreadyInRecipeWarn">
+                    Ingredient already in recipe!
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+        <div class="ui approve green button">Add Ingredient</div>
+        <div class="ui cancel button">Cancel</div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -181,10 +203,58 @@ var order = "{{ns.order}}";
 
 var recipe_inglist = [];
 var previous_id_clicked = 0
+var recipe_id_being_edited = 0
+
+var selected_ing_id_to_add = null
 
 $.fn.api.settings.api = {
     'get recipe list' : '/api/get_recipe_ingredients?recipe_id={id}',
 };
+
+$(".buttonIngAdd").on("click", function (e){
+    $('.ui.modal')
+    .modal({
+        inverted: false,
+        blurring: false,
+        dimmerSettings: {
+        variation: 'light',
+        },
+        onVisible: function(){
+            selected_ing_id_to_add = null
+            $('.ingAlreadyInRecipeWarn').toggleClass("hide",  true)
+        },
+        onHide: function(){
+            $('.ui.search').search('set value', '')
+        },
+        onApprove: function(){
+            ing_id = selected_ing_id_to_add
+            if(ing_id == null){
+                return false
+            }
+            if(get_ingredient_list_in_current_recipe().includes(ing_id)){
+                $('.ingAlreadyInRecipeWarn').toggleClass("hide",  false)
+                return false
+            }
+            add_new_ingredient_row(ing_id)
+            return true
+        },
+    })
+    .modal('show');
+});
+
+$(".ui.search")
+    .search({
+    apiSettings: {
+        url: 'api/search_ingredients_mini?search_string={query}',
+    },
+    searchDelay: 500,
+    onSelect: function(result,response){
+        selected_ing_id_to_add = result["id"]
+    },
+    cache: false,
+    selectFirstResult: false,
+    preserveHTML: false,
+    })
 
 $('.buttonView')
     .api({
@@ -207,6 +277,39 @@ $('.buttonView')
     })
 ;
 
+function get_ingredient_list_in_current_recipe(){
+    let id_list = []
+    $('.trIng')
+        .one("load",function(){
+            id = $(this).data()['id']
+            id_list.push(id)
+        })
+        .trigger("load")
+    return id_list
+}
+
+function get_updated_recipe_in_page(){
+    rec_id = recipe_id_being_edited
+    let ing_list = []
+    $('.trIng')
+    .one("load",function(){
+        id = $(this).data()['id']
+        amt = Number($(`#td_ing_amt_${id}`).text())
+        ing_list.push({
+            "ingredient_id" : id,
+            "amount_of_units" : amt,
+        })
+    })
+    .trigger("load")
+    rec_name = $(`#th_name_${rec_id}`).text()
+    rec_desc = $(`#th_desc_${rec_id}`).text()
+    rec_tags = $(`#th_tags_${rec_id}`).text()
+    console.log(rec_name)
+    console.log(rec_desc)
+    console.log(rec_tags)
+    console.log(ing_list)
+}
+
 function view_button_actions(jq, values){
     id = jq.data()['id']
     recipe_name = $(`#th_name_${id}`).text()
@@ -219,6 +322,7 @@ function view_button_actions(jq, values){
 
 $('.buttonEdit').on("click",function(e){
     id = $(this).data()['id']
+    recipe_id_being_edited = id
     $(`#b_edit_${id}`).toggleClass('hide',true)
     $(`#b_duo_update_${id}`).toggleClass('hide',false)
     convert_to_input($(`#th_name_${id}`))
@@ -236,9 +340,10 @@ $('.buttonEdit').on("click",function(e){
 
 $('.buttonCancelUpdate').on("click",function(e){
     id = $(this).data()['id']
+    $("#i_table_recipe_name").text("")
+    $("#i_table_tbody").empty()
     reset_views_button_group(id)
 });
-
 
 $('.buttonUpdate').on("click",function(e){
     id = $(this).data()['id']
@@ -248,14 +353,16 @@ $('.buttonUpdate').on("click",function(e){
     })
     .trigger("load")
     $.toast({
-        message: 'Updated!',
-        position: 'bottom right',
-        class : 'center aligned compact positive ',
+        message: 'Updated recipe!',
+        position: 'top center',
+        class : 'center aligned inverted green',
         className: {
             toast: 'ui message'
-        }
+        },
+        displayTime:  3000,
     });
     reset_views_button_group(id)
+    get_updated_recipe_in_page()
 });
 
 function convert_to_input(jq){
@@ -263,13 +370,34 @@ function convert_to_input(jq){
     elem_id = jq[0].id
     new_elem_id = `conv_${elem_id}`
     jq.empty()
-    new_input_stuff = $(`
-    <div class="ui small fluid inverted input inputFromField" id="${new_elem_id}">
-        <input type="text" class="inputNewVal" value="${textContent}">
-        <input type="text" class="inputOldVal hide" value="${textContent}" disabled>
-    </div>
-    `)
+    if(jq.hasClass("tdIngAmt")){
+        new_input_stuff = $(`
+        <div class="ui small fluid inverted input inputFromField" id="${new_elem_id}">
+            <input type="number" min="0.0" class="inputNewVal" value="${textContent}">
+            <input type="number" min="0.0" class="inputOldVal hide" value="${textContent}" disabled>
+        </div>
+        `)
+    }else{
+        new_input_stuff = $(`
+        <div class="ui small fluid inverted input inputFromField" id="${new_elem_id}">
+            <input type="text" class="inputNewVal" value="${textContent}">
+            <input type="text" class="inputOldVal hide" value="${textContent}" disabled>
+        </div>
+        `)
+    }
     jq.append(new_input_stuff)
+    if(jq.hasClass("tdIngAmt")){
+        let elem = new_input_stuff.find('.inputNewVal')
+        elem.on("change",function(){
+            ing_id = jq.data()['id']
+            cpu_elem = $(`#td_ing_CPU_${ing_id}`)
+            cost_elem = $(`#td_ing_cost_${ing_id}`)
+            amt = elem.val()
+            cpu = cpu_elem.data()['cpu']
+            cost = Number(amt) * Number(cpu)
+            cost_elem.text(`$ ${cost.toFixed(2)}`)
+        })
+    }
 }
 
 function deconvert_input(jq, option){
@@ -301,39 +429,62 @@ function generate_ingredients_table(recipe_name, values){
         return
     }
     for(let i of values){
-        let i_cost = parseFloat(i["amount_of_units"]) * parseFloat(i["cost_per_unit"])
         let ing_id = i["id"]
+        let ing_name = i["name"]
+        let ing_unit = i["unit"]
+        let ing_amt = i["amount_of_units"]
+        let ing_cpu = i["cost_per_unit"]
+        let ing_cost = parseFloat(ing_amt) * parseFloat(ing_cpu)
         let new_tr = $(`
-        <tr>
-            <td>${i["id"]}</td>
-            <td>${i["name"]}</td>
-            <td class="tdIngAmt" id="td_ing_amt_${ing_id}">${i["amount_of_units"]}</td>
-            <td>${i["unit"]}</td>
-            <td>$ ${i["cost_per_unit"].toFixed(6)}</td>
-            <td>$ ${i_cost.toFixed(2)}</td>
-            <td><button class="ui button small inverted red buttonIngRemove hide" id="b_ingRem_{{id}}" data-id={{id}}>Remove</button></td>
+        <tr class="trIng" id="tr_ing_${ing_id}" data-id="${ing_id}">
+            <td>${ing_id}</td>
+            <td>${ing_name}</td>
+            <td class="tdIngAmt" id="td_ing_amt_${ing_id}" data-id="${ing_id}">${ing_amt}</td>
+            <td>${ing_unit}</td>
+            <td class="tdIngCPU" data-id="${ing_id}" data-cpu="${ing_cpu}" id="td_ing_CPU_${ing_id}">$ ${ing_cpu.toFixed(6)}</td>
+            <td class="tdIngCost" id="td_ing_cost_${ing_id}">$ ${ing_cost.toFixed(2)}</td>
+            <td><button class="ui button small inverted red buttonIngRemove hide" id="b_ingRem_${ing_id}" data-id="${ing_id}">Remove</button></td>
         </tr>
         `)
         $("#i_table_tbody").append(new_tr)
     }
+    $('.buttonIngRemove').on("click", function(e){
+        id = $(this).data()['id']
+        $(`#tr_ing_${id}`).remove()
+    })
 }
 
-$(".buttonIngAdd").on("click",function(e){
-    add_new_ingredient_row(1)
-});
 function add_new_ingredient_row(ing_id){
-    let new_tr = $(`
-    <tr>
-        <td></td>
-        <td></td>
-        <td class="tdAddIngAmt" id="td_ingIngAmt_add">0</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-    </tr>
-    `)
-    $("#i_table_tbody").append(new_tr)
+    $.get(`api/get_ingredient_by_id?id=${ing_id}`, function(response, status){
+        let ing_data = []
+        if(response.success == true){
+            ing_data = response.results[0]
+        }
+        if(ing_data == null || ing_data.length == 0){
+            return
+        }
+        let new_ing_id = ing_data['id']
+        let ing_name = ing_data['name']
+        let ing_unit = ing_data['unit']
+        let ing_cpu = ing_data['cost_per_unit']
+        let new_tr = $(`
+            <tr class="trIng" id="tr_ing_${new_ing_id}" data-id="${new_ing_id}">
+                <td>${new_ing_id}</td>
+                <td>${ing_name}</td>
+                <td class="tdIngAmt" id="td_ing_amt_${new_ing_id}" data-id="${new_ing_id}">0</td>
+                <td>${ing_unit}</td>
+                <td class="tdIngCPU data-id="${new_ing_id}" data-cpu="${ing_cpu}" id="td_ing_CPU_${new_ing_id}"">$ ${ing_cpu.toFixed(6)}</td>
+                <td class="tdIngCost" id="td_ing_cost_${new_ing_id}">$ 0</td>
+                <td><button class="ui button small inverted red buttonIngRemove" id="b_ingRem_${new_ing_id}" data-id="${new_ing_id}">Remove</button></td>
+            </tr>
+        `)
+        $("#i_table_tbody").append(new_tr)
+        convert_to_input($(`#td_ing_amt_${new_ing_id}`))
+        $('.buttonIngRemove').on("click", function(e){
+            id = $(this).data()['id']
+            $(`#tr_ing_${id}`).remove()
+        })
+    })
 }
 
 function reset_views_button_group(id){
