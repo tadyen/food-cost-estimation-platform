@@ -28,7 +28,7 @@ footer > .segment > span{
 .wrapper{
     margin: 0 auto;
     max-width: 1200px;
-    min-height: 81vh;
+    min-height: 78vh;
 }
 #is_admin_alert{
     visibility: hidden;

@@ -42,7 +42,7 @@ TABLE_RECIPES = "recipes"
 TABLE_INGREDIENTS = "ingredients"
 TABLE_PAIRS = "recipe_ingredient_pairs"
 
-HTML_TABLE_DISPLAY_LIMIT = 10
+HTML_TABLE_DISPLAY_LIMIT = 5
 
 src_path = os.path.abspath( os.path.join( HERE_ABSPATH, SRC_PATH ) )
 class IngredientUnits(Enum):
