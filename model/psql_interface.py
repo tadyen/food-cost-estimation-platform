@@ -1,6 +1,7 @@
 import subprocess
 import json
 import psycopg2
+import psycopg2.extras
 import re
 import platform
 class Psql_interface():
@@ -57,7 +58,7 @@ class Psql_interface():
         if not self.check_db_exists():
             raise Exception("DB has not been created yet. Cannot populate DB that does not exist.")
         connection = psycopg2.connect(dbname=self.db_name, user=self.pguser, password=self._password, host=self.pghost, port=self.pgport)
-        cursor = connection.cursor()
+        cursor = connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         if field_values != None:
             cursor.execute(sql_query, field_values)
         else:
@@ -68,6 +69,8 @@ class Psql_interface():
             results = None
         connection.commit()
         connection.close()
+        if results is not None:
+            results = [dict(x) for x in results]
         return results
 
     def check_db_exists(self):
@@ -87,6 +90,7 @@ class Psql_interface():
         return True
     
     def obtain_table_fields(self, table_name) -> list[str]:
+        """Gets the column_name and data_type of a table. CAUTION: The results may NOT be in order"""
         console_out = self.psql_shell_query(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table_name}'")
         stdout = console_out[0]
         # Example output:
