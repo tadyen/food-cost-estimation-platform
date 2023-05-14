@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block styles %}
+<style>
+    .wrapper{
+        margin: 0 auto;
+        padding: 5vh 0 0 0;
+        width: 80%;
+    }
+    .invis{
+        visibility: hidden !important;
+    }
+    .hide{
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block subheading %}
+    <h2>Crafting: New Recipe</h2>
+{% endblock %}
+
+{% block main_content %}
+<div class="wrapper">
+<div class="ui inverted segment">
+    <div class="ui inverted form">
+        <div class="ui grid">
+            <div class="nine wide field">
+                <label>Name:</label>
+                <input placeholder="eg. Cake" type="text" name="name" id="i_name">
+                <div class="ui pointing red basic label hide" id="label_please_enter_a_name">
+                    Please enter a name
+                </div>
+                <div class="ui pointing red basic label hide" id="label_duplicate_name">
+                    <p>Duplicate found!</p>
+                    <a id="a_search_duplicate" href="#"><span class="ui text purple">Click here to search duplicate</span></a>
+                </div>
+            </div>
+            <div class="seven wide field">
+                <label>Tags</label>
+                <input placeholder="eg. sweet, savoury, cake, fruit" type="text" name="tags" id="i_tags">
+            </div>
+            <div class="sixteen wide field">
+                <label>Description:</label>
+                <textarea placeholder="eg. Cake is a ..." type="text" name="description" id="i_desc">
+                </textarea>
+                <div class="ui pointing red basic label hide" id="label_please_enter_a_description">
+                    Please enter a description
+                </div>
+            </div>
+            <div class="one wide field">
+                <label class="invis">asdf</label>
+                <div class="ui submit button">Craft</div>
+                <div class="ui pointing green basic label hide" id="label_submitted">
+                    Submitted!
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+function check_inputs(){
+    let everything_ok = true
+
+    name_input = $('#i_name').val()
+    description_input = $('#i_desc').val()
+
+    if( name_input == "" || name_input == null ){
+        $('#label_please_enter_a_name').toggleClass('hide',false)
+        everything_ok = false
+    }else{
+        $('#label_please_enter_a_name').toggleClass('hide',true)
+    }
+
+    if(description_input == "" || description_input == null){
+        $('#label_please_enter_a_description').toggleClass('hide',false)
+        everything_ok = false
+    }else{
+        $('#label_please_enter_a_description').toggleClass('hide',true)
+    }
+
+    return everything_ok
+}
+
+function check_duplicate_name(){
+    // Deferred
+    // Will need to implement an exact search method first 
+    // Otherwise similar searches appear as duplicates
+    let name = $('#i_name').val()
+    let search_results
+    $.ajax({
+        url : `/api/get_ingredients_table?entries_per_page=9999&search_string=${name}`,
+        success : function(response, element, xhr) {
+            search_results = response.results
+            console.log(search_results)
+        }
+    })
+}
+
+$().ready(function(){
+    $('#label_please_enter_a_name').toggleClass('hide',true)
+    $('#label_please_enter_a_description').toggleClass('hide',true)
+    $('#label_duplicate_name').toggleClass('hide',true)
+    $('#label_submitted').toggleClass('hide',true)
+});
+
+$('.ui.submit.button').on("click", function(e){
+    //check_duplicate_name()
+    if( check_inputs() ){
+        // submit
+        let name = $('#i_name').val()
+        let description = $('#i_desc').val()
+        let tags = $('#i_tags').val()
+        $.post("/api/craft_recipe", {name: name, description: description, tags: tags})
+        $('#label_submitted').toggleClass('hide',false)
+        setTimeout(() => {
+            $('#label_submitted').toggleClass('hide',true)
+        }, 2000);
+        $('#i_name').val("")
+        $('#i_desc').val("")
+        $('#i_tags').val("")
+    }
+});
+</script>
+{% endblock %}

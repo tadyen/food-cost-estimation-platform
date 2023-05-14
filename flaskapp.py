@@ -455,6 +455,27 @@ def api_get_recipe_ingredients():
         return jsonify(results = None, status = 204, mimetype = 'application/json', success = True)    
     return jsonify(results = ingredients, status = 200, mimetype = 'application/json', success = True)
 
+def api_craft_recipe():
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    try:
+        name = str( request.form.get("name") )
+        description = str( request.form.get("description") )
+        tags = str( request.form.get("tags") )
+        assert( name != "" and name is not None )
+        assert( description is not None )
+        assert( tags is not None )
+    except:
+        return abort(403, "Bad Request - Invalid POST params")
+    query = f"""
+        INSERT INTO recipes(name, description, tags)
+        VALUES(%s, %s, %s)
+        ; 
+    """
+    psql.psql_psycopg2_query(query, [name, description, tags])
+    RecipeTable.set_cud_event()
+    return jsonify(results = {}, status = 200, mimetype = 'application/json', success = True)
+
 def api_craft_ingredient():
     allowed_units = list(IngredientUnits)
     allowed_units = [ x.value for x in allowed_units]
@@ -637,6 +658,15 @@ def html_edit_recipes():
         return redirect("/bad_page")
     return render_template("edit_recipes.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
 
+@app.route("/craft_recipe", methods=["GET"])
+def html_craft_recipe():
+    (username, is_admin) = get_user_session()
+    if is_admin != "True":
+        return redirect("/")
+    if request.method != "GET":
+        return abort(404, "Not Found")
+    return render_template("craft_recipe.html", username=username, is_admin=is_admin)
+
 @app.route("/craft_ingredient", methods=["GET"])
 def html_craft_ingredient():
     (username, is_admin) = get_user_session()
@@ -741,6 +771,15 @@ def apipage_update_recipe_ingredients():
     if is_admin != "True":
         return abort(403, "Forbidden")
     return api_update_recipe_ingredients()
+
+@app.route("/api/craft_recipe", methods=["POST"])
+def apipage_craft_recipe():
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    (username, is_admin) = get_user_session()
+    if is_admin != "True":
+        return abort(403, "Forbidden")
+    return api_craft_recipe()
 
 @app.route("/api/craft_ingredient", methods=["POST"])
 def apipage_craft_ingredient():
