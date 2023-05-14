@@ -288,26 +288,36 @@ function get_ingredient_list_in_current_recipe(){
     return id_list
 }
 
-function get_updated_recipe_in_page(){
+function post_updated_recipe_in_page(){
     rec_id = recipe_id_being_edited
     let ing_list = []
+    let failed = false
     $('.trIng')
     .one("load",function(){
         id = $(this).data()['id']
         amt = Number($(`#td_ing_amt_${id}`).text())
+        if(amt <= 0 ){
+            failed = true
+            return false
+        }
         ing_list.push({
             "ingredient_id" : id,
             "amount_of_units" : amt,
         })
     })
     .trigger("load")
+    if(failed){
+        return false
+    }
     rec_name = $(`#th_name_${rec_id}`).text()
     rec_desc = $(`#th_desc_${rec_id}`).text()
     rec_tags = $(`#th_tags_${rec_id}`).text()
-    console.log(rec_name)
-    console.log(rec_desc)
-    console.log(rec_tags)
-    console.log(ing_list)
+    $.post("/api/update_recipe", {id: rec_id, name: rec_name, description: rec_desc, tags: rec_tags})
+    payload = JSON.stringify({'recipe_id': rec_id, 'ingredients_list': ing_list})
+    console.log(payload)
+    $.post("/api/update_recipe_ingredients", {raw_json_str:payload})
+    console.log("POST request - Update recipe")
+    return true
 }
 
 function view_button_actions(jq, values){
@@ -346,23 +356,35 @@ $('.buttonCancelUpdate').on("click",function(e){
 });
 
 $('.buttonUpdate').on("click",function(e){
-    id = $(this).data()['id']
+    let id = $(this).data()['id']
     $('.inputFromField')
     .one("load", function(e){
         deconvert_input($(this),'update')
     })
     .trigger("load")
-    $.toast({
-        message: 'Updated recipe!',
-        position: 'top center',
-        class : 'center aligned inverted green',
-        className: {
-            toast: 'ui message'
-        },
-        displayTime:  3000,
-    });
-    reset_views_button_group(id)
-    get_updated_recipe_in_page()
+    if(post_updated_recipe_in_page()){
+        reset_views_button_group(id)
+        $.toast({
+            message: 'Updated recipe!',
+            position: 'top center',
+            class : 'center aligned inverted green',
+            className: {
+                toast: 'ui message'
+            },
+            displayTime:  5000,
+        });
+    }else{
+        $.toast({
+            message: 'Invalid amount set somewhere',
+            position: 'top center',
+            class : 'center aligned inverted red',
+            className: {
+                toast: 'ui message'
+            },
+            displayTime:  5000,
+        });
+        return false
+    }
 });
 
 function convert_to_input(jq){
@@ -373,8 +395,8 @@ function convert_to_input(jq){
     if(jq.hasClass("tdIngAmt")){
         new_input_stuff = $(`
         <div class="ui small fluid inverted input inputFromField" id="${new_elem_id}">
-            <input type="number" min="0.0" class="inputNewVal" value="${textContent}">
-            <input type="number" min="0.0" class="inputOldVal hide" value="${textContent}" disabled>
+            <input type="number" min="0.000000000000001" class="inputNewVal" value="${textContent}">
+            <input type="number" min="0.000000000000001" class="inputOldVal hide" value="${textContent}" disabled>
         </div>
         `)
     }else{

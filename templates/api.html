@@ -104,8 +104,31 @@
             </div>
         </div>
     </div>
+    <div class="ui inverted relaxed divided list">
+        <div class="item">
+            <div class="content">
+                <a class="header" href="/api/update_recipe">update_recipe</a>
+                <div class="ui small compact inverted text menu">
+                    <div class="item darker">name</div>
+                    <div class="item darker">description</div>
+                    <div class="item darker">tags</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ui inverted relaxed divided list">
+        <div class="item">
+            <div class="content">
+                <a class="header" href="/api/update_recipe_ingredients">update_recipe_ingredients</a>
+                <div class="ui small compact inverted text menu">
+                    <div class="item darker">recipe_id</div>
+                    <div class="item darker">JSON.stringify({'recipe_id': rec_id, 'ingredients_list': ing_list})</div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
 </div>
 
 {% endblock %}

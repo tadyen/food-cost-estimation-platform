@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 from model.psql_interface import Psql_interface
 
+import json
 import bcrypt
 import math
 import os
@@ -457,19 +458,21 @@ def api_get_recipe_ingredients():
 def api_craft_ingredient():
     allowed_units = list(IngredientUnits)
     allowed_units = [ x.value for x in allowed_units]
-    if request.method == "POST":
-        try:
-            name = str( request.form.get("name") )
-            unit = str( request.form.get("unit") )
-            cost = str( request.form.get("cost") )
-            assert( unit in allowed_units )
-            assert( name != "" and name is not None )
-            assert( cost != "" and cost is not None )
-            isInt = bool(re.match(r"^[1-9]\d*$", cost))
-            isFloat = bool(re.match(r"^\d+\.?\d+$", cost))
-            assert( isInt or isFloat )
-        except:
-            return abort(403, "Bad Request - Invalid POST params")
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    try:
+        name = str( request.form.get("name") )
+        unit = str( request.form.get("unit") )
+        cost = str( request.form.get("cost") )
+        assert( unit in allowed_units )
+        assert( name != "" and name is not None )
+        assert( cost != "" and cost is not None )
+        isInt = bool(re.match(r"^[1-9]\d*$", cost))
+        isFloat = bool(re.match(r"^\d+\.?\d+$", cost))
+        assert( isInt or isFloat )
+        assert( cost > 0 )
+    except:
+        return abort(403, "Bad Request - Invalid POST params")
     query = f"""
         INSERT INTO ingredients(name, unit, cost_per_unit)
         VALUES(%s, %s, %s)
@@ -477,6 +480,72 @@ def api_craft_ingredient():
     """
     psql.psql_psycopg2_query(query, [name, unit, cost])
     IngredientsTable.set_cud_event()
+    return jsonify(results = {}, status = 200, mimetype = 'application/json', success = True)
+
+def api_update_recipe():
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    try:
+        id = str( request.form.get("id") )
+        name = str( request.form.get("name") )
+        tags = str( request.form.get("tags") )
+        description = str( request.form.get("description") )
+        assert( bool(re.match(r"^[1-9]\d*$", id)) )
+        id = int(id)
+        assert( id > 0)
+        assert( name != "" and name is not None )
+        assert( tags is not None )
+        assert( description is not None )
+    except:
+        return abort(403, "Bad Request - Invalid POST params")
+    query = f"""
+        UPDATE recipes
+        SET name = %s, description = %s, tags = %s
+        WHERE id = {id}
+        ; 
+    """
+    psql.psql_psycopg2_query(query, [name, description, tags])
+    RecipeTable.set_cud_event()
+    return jsonify(results = {}, status = 200, mimetype = 'application/json', success = True)
+
+def api_update_recipe_ingredients():
+    """ Takes in recipe_id and a list of kv ingredients"""
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    payload = json.loads(request.form.get("raw_json_str"))
+    try:
+        recipe_id = str(payload["recipe_id"])
+        ingredients_list = payload["ingredients_list"]
+        assert( bool(re.match(r"^[1-9]\d*$", recipe_id)) )
+        recipe_id = int(recipe_id)
+        assert(recipe_id > 0)
+    except:
+        return abort(403, "Bad Request - Invalid POST params")
+    for ingredient in ingredients_list:
+        try:
+            ingredient_id = str( ingredient["ingredient_id"] )
+            amount_of_units = str( ingredient["amount_of_units"] )
+            assert( bool(re.match(r"^[1-9]\d*$", ingredient_id)) )
+            isInt = bool(re.match(r"^[1-9]\d*$", amount_of_units))
+            isFloat = bool(re.match(r"^\d+\.?\d+$", amount_of_units))
+            assert( isInt or isFloat )
+            ingredient_id = int(ingredient_id)
+            amount_of_units = float(amount_of_units)
+            assert(ingredient_id > 0)
+            assert(amount_of_units > 0)
+        except:
+            return abort(403, "Bad Request - Invalid POST params")
+    query = f"DELETE FROM recipe_ingredient_pairs WHERE recipe_id={recipe_id};"
+    psql.psql_psycopg2_query(query)
+    for ingredient in ingredients_list:
+        ingredient_id = int( ingredient["ingredient_id"] )
+        amount_of_units = float( ingredient["amount_of_units"] )
+        query = f"""
+            INSERT INTO recipe_ingredient_pairs(recipe_id, ingredient_id, amount_of_units)
+            VALUES(%s, %s, %s)
+            ;
+        """
+        psql.psql_psycopg2_query(query, [recipe_id, ingredient_id, amount_of_units])
     return jsonify(results = {}, status = 200, mimetype = 'application/json', success = True)
 # ===================================================================================
 #  Routes
@@ -623,6 +692,28 @@ def apipage_get_recipe_ingredients():
     if request.method != "GET": 
         return abort(404, "Not Found")
     return api_get_recipe_ingredients()
+
+# ===================================================================================
+#  POST API Routes
+# ===================================================================================
+
+@app.route("/api/update_recipe", methods=["POST"])
+def apipage_update_recipe():
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    (username, is_admin) = get_user_session()
+    if is_admin != "True":
+        return abort(403, "Forbidden")
+    return api_update_recipe()
+
+@app.route("/api/update_recipe_ingredients", methods=["POST"])
+def apipage_update_recipe_ingredients():
+    if request.method != "POST":
+        return abort(404, "Not Found")
+    (username, is_admin) = get_user_session()
+    if is_admin != "True":
+        return abort(403, "Forbidden")
+    return api_update_recipe_ingredients()
 
 @app.route("/api/craft_ingredient", methods=["POST"])
 def apipage_craft_ingredient():
