@@ -43,7 +43,7 @@
   $(".ui.search")
     .search({
       apiSettings: {
-        url: '/api/get_ingredients_table?entries_per_page=10&page_number=1&sort_by=id&order=asc&search_string={query}',
+        url: 'api/search_ingredients_mini?search_string={query}',
       },
       searchDelay: 500,
     })

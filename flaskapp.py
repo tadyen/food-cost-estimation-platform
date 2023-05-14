@@ -262,7 +262,7 @@ class ApiGetQueryTable():
         
         # Combining them:
         query = (
-            f"WITH exact_search AS ({exact_search_query}),"
+            f"WITH exact_search AS ({exact_search_query}{self.add_sort_stuff('')}),"
             + f" and_search AS ({and_search_query}),"
             + f" or_search AS ({or_search_query}),"
             + " unordered_union AS"
@@ -273,14 +273,14 @@ class ApiGetQueryTable():
                 + " SELECT * FROM or_search"
                 + "),")
             + " and_u_or AS (SELECT * FROM unordered_union EXCEPT SELECT * FROM exact_search),"
-            + " rem_or AS (SELECT * FROM and_u_or EXCEPT SELECT * FROM and_search),"
-            + " rem_and AS (SELECT * FROM and_u_or EXCEPT SELECT * FROM rem_or)"
-            + self.add_sort_stuff(" SELECT * FROM exact_search")
+            + f" rem_or AS (SELECT * FROM and_u_or EXCEPT SELECT * FROM and_search {self.add_sort_stuff('')}),"
+            + f" rem_and AS (SELECT * FROM and_u_or EXCEPT SELECT * FROM rem_or {self.add_sort_stuff('')})"
+            + " SELECT * FROM exact_search"
             + " UNION ALL"
-            + self.add_sort_stuff(" SELECT * FROM rem_and")
+            + " SELECT * FROM rem_and"
             + " UNION ALL"
-            + self.add_sort_stuff(" SELECT * FROM rem_or")
-            + self.add_limit_stuff("")
+            + " SELECT * FROM rem_or"
+            + self.add_limit_stuff('')
             + ";"
         )
         self.full_query_result = psql.psql_psycopg2_query(query)
@@ -395,7 +395,6 @@ def api_get_query_table_mini(QueryTable: ApiGetQueryTable):
         return jsonify(error = "Invalid Get Parameters", status = 400, success = False)
     payload = {
         "results"   : [],
-        "action"    : {},
         "mimetype"  : "aplication/json",
         "status"    : 200,
         "success"   : True,
