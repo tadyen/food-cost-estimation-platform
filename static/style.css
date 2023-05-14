@@ -14,13 +14,21 @@ body{
     background-attachment:fixed;
 }
 header{
-    text-align:center
+    text-align:center;
 }
 footer{
-    position: absolute;
-    bottom: 1vh;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    margin: 0 auto;
+    padding: 10px 0px;
+    text-align: center;
+}
+footer > .segment > span{
+    padding: 0px 0.5rem;
+    margin: 0px -2px;
+}
+.wrapper{
+    margin: 0 auto;
+    max-width: 1200px;
+    min-height: 81vh;
 }
 #is_admin_alert{
     visibility: hidden;
@@ -29,4 +37,22 @@ footer{
 .invalid_user{
     visibility: hidden;
     transition: opacity 0.25s ease;
+}
+.hide{
+    display: none !important;
+}
+.invis{
+    visibility: hidden !important;
+}
+@media screen and (max-width: 768px) {
+    header{
+        margin: 0 auto;
+        transform: translate(-50%, -50%);
+        left: 50%;
+        position: absolute;
+    }
+    .wrapper{
+        border: solid 1px red;
+        width: 100vw;
+    }
 }

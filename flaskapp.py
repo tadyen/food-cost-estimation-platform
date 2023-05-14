@@ -321,13 +321,34 @@ def get_query_table(QueryTable: ApiGetQueryTable):
 def api_get_query_table(QueryTable: ApiGetQueryTable):
     results = get_query_table(QueryTable)
     if results["success"] is not True and results["payload"] is None:
-        return abort(400, "Invalid GET parameters")
-    return jsonify({"message": results["payload"], "status": 200, "mimetype": 'application/json', "success": True})
+        return jsonify(error = "Invalid Get Parameters", status = 400, success = False)
+    return jsonify(message = results["payload"], status = 200, mimetype = 'application/json', success = True)
     
 def page_get_query_table(QueryTable: ApiGetQueryTable):
     results = get_query_table(QueryTable)
     return results["payload"]
-    
+
+def api_get_item_by_id(table_name:str):
+    """Caution with this method, could leak users info if improperly used"""
+    if request.method == "GET":
+        id = request.args.get("id")
+    try:
+        id = int(id)
+        assert(id > 0)
+    except:
+        return jsonify(message = {}, status = 400, mimetype = 'application/json', success = False)
+    try:
+        query = f"SELECT COUNT(*) FROM {table_name};"
+        total_num_of_items = psql.psql_psycopg2_query(query)[0][0]
+        assert(id <= total_num_of_items)
+    except:
+        return jsonify(message = {}, status = 400, mimetype = 'application/json', success = False)
+    query = f"SELECT * FROM {table_name} WHERE id={id};"
+    item = psql.psql_psycopg2_query(query)
+    if len(item) == 0:
+        return jsonify(message = None, status = 204, mimetype = 'application/json', success = True)
+    return jsonify(message = item, status = 200, mimetype = 'application/json', success = True)
+
 # ===================================================================================
 #  Routes
 # ===================================================================================
@@ -338,6 +359,11 @@ def html_home():
     if recipe_table is None:
         return redirect("/bad_page")
     return render_template("home.html", username=username, is_admin=is_admin, recipe_table=recipe_table)
+
+@app.route("/api")
+def html_api():
+    (username, is_admin) = get_user_session()
+    return render_template("api.html", username=username, is_admin=is_admin)
 
 @app.route("/old_home", methods=["GET"])
 def html_home_old():
@@ -405,7 +431,6 @@ def html_craft_ingredient():
     allowed_units = [ x.value for x in allowed_units]
     return render_template("craft_ingredient.html", username=username, is_admin=is_admin, allowed_units=allowed_units)
 
-        
 @app.route("/logout")
 def page_logout():
     session.clear()
@@ -434,6 +459,40 @@ IngredientsTable = ApiGetQueryTable("ingredients")
 @app.route("/api/get_ingredients_table", methods=["GET"])
 def api_get_ingredients_table():
     return api_get_query_table(IngredientsTable)
+
+
+@app.route("/api/get_ingredient_by_id", methods=["GET"])
+def api_get_ingredient_by_id():
+    return api_get_item_by_id("ingredients")
+
+@app.route("/api/get_recipe_by_id", methods=["GET"])
+def api_get_recipe_by_id():
+    return api_get_item_by_id("recipe")
+
+@app.route("/api/get_recipe_ingredients", methods=["GET"])
+def api_get_recipe_ingredients():
+    if request.method == "GET":
+        recipe_id = request.args.get("recipe_id")
+    try:
+        recipe_id = int(recipe_id)
+        assert( recipe_id >= 0 )
+    except:
+        return jsonify(message = {}, status = 400, mimetype = 'application/json', success = False)
+    try:
+        query = f"SELECT COUNT(*) FROM recipes;"
+        total_num_of_recipes = psql.psql_psycopg2_query(query)[0][0]
+        assert( recipe_id <= total_num_of_recipes)
+    except:
+        return jsonify(message = {}, status = 400, mimetype = 'application/json', success = False)
+    query = f"""SELECT i.id, i.name, i.unit, p.amount_of_units, i.cost_per_unit FROM 
+    (recipe_ingredient_pairs as p INNER JOIN ingredients as i ON p.ingredient_id = i.id)
+    WHERE p.recipe_id = {recipe_id}
+    ;
+    """
+    ingredients = psql.psql_psycopg2_query(query)
+    if len(ingredients) == 0:
+        return jsonify(message = None, status = 204, mimetype = 'application/json', success = True)    
+    return jsonify(message = ingredients, status = 200, mimetype = 'application/json', success = True)
 
 @app.route("/api/craft_ingredient", methods=["POST"])
 def api_craft_ingredient():
@@ -464,28 +523,7 @@ def api_craft_ingredient():
     """
     psql.psql_psycopg2_query(query, [name, unit, cost])
     IngredientsTable.set_cud_event()
-    return jsonify({"message":{}, "status":200, "mimetype":'application/json', "success":True})
-
-@app.route("/api/get_recipe_ingredients", methods=["GET"])
-def api_get_recipe_ingredients():
-    query = f"SELECT COUNT(*) FROM recipes;"
-    total_num_of_recipes = psql.psql_psycopg2_query(query)[0][0]
-    if request.method == "GET":
-        recipe_id = request.args.get("recipe_id")
-        recipe_id = recipe_id if recipe_id is not None else ""
-    try:
-        recipe_id = int(recipe_id)
-        assert( recipe_id >= 0 )
-        assert( recipe_id <= total_num_of_recipes)
-        query = f"""SELECT i.id, i.name, i.unit, p.amount_of_units, i.cost_per_unit FROM 
-        (recipe_ingredient_pairs as p INNER JOIN ingredients as i ON p.ingredient_id = i.id)
-        WHERE p.recipe_id = {recipe_id}
-        ;
-        """
-        ingredients = psql.psql_psycopg2_query(query)
-    except:
-        return abort(400, "Bad Request - Invalid GET parameters")
-    return jsonify({"message":ingredients, "status":200, "mimetype":'application/json', "success":True})
+    return jsonify(message = {}, status = 200, mimetype = 'application/json', success = True)
 
 if __name__ == "__main__":
     app.run(debug=True)

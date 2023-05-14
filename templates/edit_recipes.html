@@ -17,35 +17,20 @@
 
 {% block styles %}
 <style>
-    .wrapper{
-        margin: 0 auto;
-        width: 90vw;
-    }
     #a_this_table_number{
         border: solid 1px white;
     }
-    .hide{
-        display: none !important;
-    }
     .or::before {
         opacity: 15%;
-    }
-    .invis{
-        visibility: hidden !important;
     }
     .th_invis{
         color: #FFFFFF00 !important;
         border-style: none none solid none !important;
     }
-    .toast-container{
-        top: 20% !important;
-        left: 70% !important;
-    }
 </style>
 {% endblock %}
 
-{% block header_content %}
-    <h1>Food Cost Estimator</h1>
+{% block subheading %}
     <h2>Editting: Recipes</h2>
 {% endblock %}
 
@@ -172,7 +157,9 @@
                 <th>Unit</th>
                 <th>Cost/unit</th>
                 <th>Cost of ingredient</th>
-                <th><button class="ui button inverted red small invis">Remove</button></th>
+                <th>
+                    <button class="ui button small inverted green buttonIngAdd hide">&nbsp;&nbsp;&nbsp;&nbsp;Add&nbsp;&nbsp;&nbsp;&nbsp;</button>
+                </th>
             </tr>
         </thead>
         <tbody id="i_table_tbody">
@@ -202,11 +189,24 @@ $.fn.api.settings.api = {
 $('.buttonView')
     .api({
         action: 'get recipe list',
+        successTest: function(response) {
+            // test whether a JSON response is valid
+            return response.success || false;
+        },
         onSuccess: function(response, element, xhr) {
+            console.log(`response success: ${response.success}`)
             view_button_actions($(this), response.message)
-        }
+        },
+        onFailure: function(response, element, xhr) {
+            // request failed, or valid response but response.success = false
+            console.log("response failed at:")
+            console.log($(this))
+            console.log("on")
+            console.log($.fn.api.settings.api['get recipe list'])
+        },
     })
 ;
+
 function view_button_actions(jq, values){
     id = jq.data()['id']
     recipe_name = $(`#th_name_${id}`).text()
@@ -225,7 +225,7 @@ $('.buttonEdit').on("click",function(e){
     convert_to_input($(`#th_desc_${id}`))
     convert_to_input($(`#th_tags_${id}`))
     $('.buttonIngRemove').toggleClass('hide',false)
-    $('.trAddIng').toggleClass('hide',false)
+    $('.buttonIngAdd').toggleClass('hide',false)
     $('.tdIngAmt')
         .one("load", function(e){
             convert_to_input($(this))
@@ -249,8 +249,8 @@ $('.buttonUpdate').on("click",function(e){
     .trigger("load")
     $.toast({
         message: 'Updated!',
-        position: 'centered',
-        class : 'green inverted basic',
+        position: 'bottom right',
+        class : 'center aligned compact positive ',
         className: {
             toast: 'ui message'
         }
@@ -297,6 +297,9 @@ function generate_ingredients_table(recipe_name, values){
     //   0.00227666666 ]
     $("#i_table_recipe_name").text(recipe_name)
     $("#i_table_tbody").empty()
+    if( values == null || values.length == 0){
+        return
+    }
     for(let i of values){
         let i_cost = parseFloat(i[3]) * parseFloat(i[4])
         let ing_id = i[0]
@@ -313,15 +316,21 @@ function generate_ingredients_table(recipe_name, values){
         `)
         $("#i_table_tbody").append(new_tr)
     }
+}
+
+$(".buttonIngAdd").on("click",function(e){
+    add_new_ingredient_row(1)
+});
+function add_new_ingredient_row(ing_id){
     let new_tr = $(`
-    <tr class="trAddIng hide">
+    <tr>
         <td></td>
         <td></td>
-        <td class="tdIngAmt" id="td_ingIngAmt_add">0</td>
+        <td class="tdAddIngAmt" id="td_ingIngAmt_add">0</td>
         <td></td>
         <td></td>
         <td></td>
-        <td><button class="ui button small inverted green buttonIngAdd">Add</button></td>
+        <td></td>
     </tr>
     `)
     $("#i_table_tbody").append(new_tr)
@@ -337,7 +346,7 @@ function reset_views_button_group(id){
     })
     .trigger("load")
     $('.buttonIngRemove').toggleClass('hide',true)
-    $('.trAddIng').toggleClass('hide',true)
+    $('.buttonIngAdd').toggleClass('hide',true)
     $('.buttonPreDelete').toggleClass('disabled',false)
 }
 

@@ -4,11 +4,12 @@
     form{
         margin: 0 auto;
         top: 20vh;
-        width: 50vw;
+        width: 50%;
     }
 </style>
 {% endblock %}
 {% block main_content %}
+<div class="wrapper">
 <form class="ui form inverted" method="POST">
     <div class="ui message red invalid_user">
         <div class="header">Invalid username or password entered</div>
@@ -23,7 +24,7 @@
     </div>
     <button class="ui button deny" type="submit" >Log-in</button>
 </form>
-
+</div>
 {% endblock %}
 {% block scripts %}
 <script>

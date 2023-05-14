@@ -9,7 +9,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>Food cost estimator</title>
         <meta name="description" content="Food-cost-estimator">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=800, initial-scale=1">
         <link rel="icon" type="image/x-icon" href="./static/imgs/64_favicon.png">
         <!-- You MUST include jQuery 3+ before Fomantic -->
         <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
@@ -76,8 +76,9 @@
             <div class="header">You must be logged in as an admin to edit.</div>
         </div>
         <header>
-            {% block header_content %}
             <h1>Food Cost Estimator</h1>
+            {% block subheading %}
+            <h2 class="invis">asdf</h2>
             {% endblock %}
         </header>
         <main>
@@ -85,7 +86,11 @@
         {% endblock %}
         </main>
         <footer>
-            by <a href="https://github.com/tadyen">tadyen</a>. <a href="https://github.com/tadyen/food-cost-estimation-platform">Source code</a>
+            <div class="ui basic segment">
+                <span>by <a href="https://github.com/tadyen">tadyen</a></span>
+                <span><a href="/api">API</a></span>
+                <span><a href="https://github.com/tadyen/food-cost-estimation-platform">Source code</a></span>
+            </div>
         </footer>
         <!--[if lt IE 7]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>

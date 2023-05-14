@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<style>
+    .darker{
+        opacity: 70% !important;
+    }
+    .wrapper{
+        padding: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block subheading %}
+    <h2>APIs</h2>
+{% endblock %}
+
+{% block main_content %}
+<div class="wrapper">
+<div class="ui inverted segment center aligned ">
+    <div class="ui inverted message">
+        <div class="header">GET</div>
+    </div>
+    <div class="ui inverted relaxed divided list">
+        <div class="item">
+            <div class="content">
+                <a class="header" href="/api/get_recipes_table">get_recipes_table</a>
+                <div class="ui small compact inverted text menu">
+                    <div class="item darker">entries_per_page</div>
+                    <div class="item darker">page_number</div>
+                    <div class="item darker">search_string</div>
+                    <div class="item darker">sort_by</div>
+                    <div class="item darker">order</div>
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <div class="content">
+                <a class="header" href="/api/get_ingredients_table">get_ingredients_table</a>
+                <div class="ui small compact inverted text menu">
+                    <div class="item darker">entries_per_page</div>
+                    <div class="item darker">page_number</div>
+                    <div class="item darker">search_string</div>
+                    <div class="item darker">sort_by</div>
+                    <div class="item darker">order</div>
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <div class="content">
+                <a class="header" href="/api/get_ingredient_by_id">get_ingredient_by_id</a>
+                <div class="ui small compact inverted text menu">
+                    <div class="item darker">id</div>
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <div class="content">
+                <a class="header" href="/api/get_recipe_by_id">get_recipe_by_id</a>
+                <div class="ui small compact inverted text menu">
+                    <div class="item darker">id</div>
+                </div>
+            </div>
+        </div>
+        <div class="item">
+            <div class="content">
+                <a class="header" href="/api/get_recipe_ingredients">get_recipe_ingredients</a>
+                <div class="ui small compact inverted text menu">
+                    <div class="item darker">recipe_id</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="ui inverted segment center aligned ">
+    <div class="ui inverted message">
+        <div class="header">POST</div>
+    </div>
+    <div class="ui inverted relaxed divided list">
+        <div class="item">
+            <div class="content">
+                <a class="header" href="/api/craft_ingredient">craft_ingredient</a>
+                <div class="ui small compact inverted text menu">
+                    <div class="item darker">name</div>
+                    <div class="item darker">unit</div>
+                    <div class="item darker">cost</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+</div>
+
+{% endblock %}
