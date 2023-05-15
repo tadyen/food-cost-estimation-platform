@@ -635,7 +635,7 @@ def html_signin():
     if request.method == "POST":
         user = request.form.get("username")
         users = psql.psql_psycopg2_query("SELECT username FROM users;")
-        users = [tup[0] for tup in users]
+        users = [x["username"] for x in users]
         if not (user in users):
             return render_template("signin.html", username="None", invalid_user="True", is_admin="False")
         sql_query = f"SELECT password_hash FROM users WHERE username = '{user}'"
