@@ -64,12 +64,12 @@ I wrote a module that lets me interface with Postgres completely. Key Features:
 
 #### Controller (C in MVC)
 
-In flask, I wrote a whole class for querying the data and storing parameters with the query.
+In Python, I wrote a whole class for querying the data and storing parameters with the query.
 This class handles the querying logic of singular tables (ie no Joins).
 
 This was mostly for tables on the site so that if a search was done on a specific string or set of parameters, a query wouldn't need to be re-performed if only a slice of the results is desired.
 
-I seperated my app routes into HTMLs (pages that are rendered) and into APIs (pages that return API jsons).
+Using Flask, I seperated my app routes into HTMLs (pages that are rendered) and into APIs (pages that return API jsons).
 
 #### Views (V in MVC)
 
