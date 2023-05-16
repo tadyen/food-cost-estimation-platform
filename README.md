@@ -1,6 +1,6 @@
 # food-cost-estimation-platform
 
-![image_of_landing_page](/readme_stuff/landing_page.png)
+![gif_of_page_demo](/readme_stuff/crud_demo.gif)
 
 This project is a platform for users (particularly chefs) to run food cost estimation.
 Users can update ingredient cost and recipes for food cost estimation in preparing restaurant needs.
