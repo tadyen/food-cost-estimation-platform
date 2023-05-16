@@ -5,7 +5,7 @@
 This project is a platform for users (particularly chefs) to run food cost estimation.
 Users can update ingredient cost and recipes for food cost estimation in preparing restaurant needs.
 
-Currently deployed on food-cost-estimation-platform.onrender.com
+Currently deployed on Render. [View site](https://food-cost-estimation-platform.onrender.com)
 
 <details>
   <summary>Click to expand : Project motivators</summary>
