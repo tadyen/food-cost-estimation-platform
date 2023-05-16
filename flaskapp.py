@@ -420,12 +420,6 @@ def api_get_item_by_id(table_name:str):
         assert(id > 0)
     except:
         return jsonify(results = {}, status = 400, mimetype = 'application/json', success = False)
-    try:
-        query = f"SELECT COUNT(*) FROM {table_name};"
-        total_num_of_items = psql.psql_psycopg2_query(query)[0]["count"]
-        assert(id <= total_num_of_items)
-    except:
-        return jsonify(results = {}, status = 400, mimetype = 'application/json', success = False)
     query = f"SELECT * FROM {table_name} WHERE id={id};"
     item = psql.psql_psycopg2_query(query)
     if len(item) == 0:
@@ -437,12 +431,6 @@ def api_get_recipe_ingredients():
     try:
         recipe_id = int(recipe_id)
         assert( recipe_id > 0 )
-    except:
-        return jsonify(results = {}, status = 400, mimetype = 'application/json', success = False)
-    try:
-        query = f"SELECT COUNT(*) FROM recipes;"
-        total_num_of_recipes = psql.psql_psycopg2_query(query)[0]["count"]
-        assert( recipe_id <= total_num_of_recipes)
     except:
         return jsonify(results = {}, status = 400, mimetype = 'application/json', success = False)
     query = f"""SELECT i.id, i.name, i.unit, p.amount_of_units, i.cost_per_unit FROM 
