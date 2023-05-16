@@ -491,6 +491,7 @@ def api_craft_ingredient():
         isInt = bool(re.match(r"^[1-9]\d*$", cost))
         isFloat = bool(re.match(r"^\d+\.?\d+$", cost))
         assert( isInt or isFloat )
+        cost = float(cost)
         assert( cost > 0 )
     except:
         return abort(403, "Bad Request - Invalid POST params")
